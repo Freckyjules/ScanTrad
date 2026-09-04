@@ -1,6 +1,0 @@
-@ScanTradAPI_HostAddress = http://localhost:5250
-
-GET {{ScanTradAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
