@@ -68,7 +68,9 @@ secrets.json
 # ou centaines de Mo. On ne les versionne pas : script de telechargement ou
 # Git LFS si vraiment necessaire.
 ###############################################################################
-models/
+# Attention : sur Windows git ignore la casse, donc une regle « models/ » nue
+# avalerait aussi les dossiers « Models/ » du code C#. On limite a la racine.
+/models/
 *.onnx
 *.onnx.data
 *.pt
