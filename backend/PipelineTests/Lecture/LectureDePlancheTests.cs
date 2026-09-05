@@ -122,6 +122,41 @@ namespace ScanTrad.PipelineTests.Lecture
         }
 
         /// <summary>
+        /// Deux zones ne portent jamais la même bulle.
+        /// </summary>
+        /// <remarks>
+        /// Deux blocs peuvent aboutir dans une même bulle liée, dont les lobes
+        /// communiquent : le chercheur travaille bloc par bloc et rend alors deux fois
+        /// le même contour, au point près. Le lecteur assemble ces zones en une seule.
+        /// <para>
+        /// Sans cet assemblage, chaque zone se croirait propriétaire de toute la
+        /// bulle, et leur rendu déborderait l'une sur l'autre. Sur la planche d'essai,
+        /// deux blocs étaient dans ce cas.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void Lecture_NeRendJamaisDeuxFoisLaMemeBulle()
+        {
+            for (int i = 0; i < lecture.Zones.Count; i++)
+            {
+                for (int j = i + 1; j < lecture.Zones.Count; j++)
+                {
+                    Bulle? une = lecture.Zones[i].Bulle;
+                    Bulle? autre = lecture.Zones[j].Bulle;
+
+                    if (une == null || autre == null)
+                    {
+                        continue;
+                    }
+
+                    Assert.False(
+                        MemeContour(une, autre),
+                        $"Les zones {i} et {j} portent le même contour : l'assemblage les a manquées.");
+                }
+            }
+        }
+
+        /// <summary>
         /// Attache au test une image de ce que la lecture a détecté, visible
         /// directement dans l'explorateur de tests.
         /// </summary>
@@ -139,6 +174,19 @@ namespace ScanTrad.PipelineTests.Lecture
             sortie.WriteLine(
                 "Aperçu attaché : vert = rectangle du bloc, rouge = contour de la bulle, " +
                 "bleu = rang de détection.");
+        }
+
+        private static bool MemeContour(Bulle une, Bulle autre)
+        {
+            if (une.Contour.Count != autre.Contour.Count)
+            {
+                return false;
+            }
+
+            return !une.Contour
+                .Where((point, rang) =>
+                    point.X != autre.Contour[rang].X || point.Y != autre.Contour[rang].Y)
+                .Any();
         }
 
         private void Decrire()

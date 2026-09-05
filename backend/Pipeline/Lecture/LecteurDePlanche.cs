@@ -27,6 +27,15 @@ namespace ScanTrad.Pipeline.Lecture
     /// remonter les coordonnées des lignes trouvées dans la découpe.
     /// </para>
     /// <para>
+    /// Une dernière passe assemble les zones qui ont abouti dans la même bulle. Le
+    /// chercheur travaille bloc par bloc et ne voit pas que la diffusion a déjà
+    /// parcouru cette région : deux lobes d'une bulle liée, dont le blanc intérieur
+    /// communique, rendent deux fois le même contour au point près. Ce n'est pas du
+    /// regroupement par proximité — le critère est une égalité exacte, sans seuil —
+    /// mais la réparation d'une duplication née ici. Les deux fragments portent de
+    /// toute façon une seule phrase, que la traduction doit voir d'un tenant.
+    /// </para>
+    /// <para>
     /// Le prix de cette approche est un échange précision contre rappel : ce que le
     /// modèle rate est définitivement perdu, là où une détection ligne par ligne
     /// ramasse tout, bruit compris.
@@ -206,7 +215,103 @@ namespace ScanTrad.Pipeline.Lecture
                 }
             }
 
-            return zones;
+            return Assembler(zones);
+        }
+
+        private static List<ZoneDeTexte> Assembler(List<ZoneDeTexte> zones)
+        {
+            // Deux blocs peuvent tomber dans la même bulle : le chercheur travaille
+            // bloc par bloc et ne voit pas que la diffusion a déjà parcouru cette
+            // région. Il rend alors deux fois le même contour, au point près.
+            List<ZoneDeTexte> assemblees = new List<ZoneDeTexte>();
+            List<ZoneDeTexte> restantes = new List<ZoneDeTexte>(zones);
+
+            while (restantes.Count > 0)
+            {
+                List<ZoneDeTexte> fragments = restantes
+                    .Where(zone => MemeBulle(zone, restantes[0]))
+                    .ToList();
+
+                restantes.RemoveAll(zone => fragments.Contains(zone));
+
+                assemblees.Add(fragments.Count == 1 ? fragments[0] : Fusionner(fragments));
+            }
+
+            return assemblees;
+        }
+
+        private static ZoneDeTexte Fusionner(IReadOnlyList<ZoneDeTexte> fragments)
+        {
+            // Les fragments arrivent dans l'ordre du détecteur, qui rend ses blocs de
+            // haut en bas : c'est déjà le bon ordre pour deux lobes empilés, le cas
+            // courant d'une bulle liée. Deux lobes côte à côte se recolleraient dans
+            // un ordre arbitraire ; on n'en a pas rencontré, et deviner demanderait le
+            // sens de lecture, que le lecteur n'a pas à connaître.
+            ZoneDeTexte assemblee = new ZoneDeTexte();
+
+            assemblee.Rectangle = Englober(fragments.Select(fragment => fragment.Rectangle));
+            assemblee.Angle = AngleMoyen(fragments.Select(fragment => fragment.Angle));
+            assemblee.HauteurDeLigne = HauteurMoyenne(fragments);
+            assemblee.Bulle = fragments[0].Bulle;
+            assemblee.CouleurDeFond = fragments[0].CouleurDeFond;
+
+            // Recoller avec une espace, comme les lignes d'un même bloc : les deux
+            // lobes d'une bulle liée portent une seule phrase, et la traduire d'un
+            // seul tenant est le vrai gain de l'assemblage.
+            assemblee.TexteOriginal = string.Join(
+                " ", fragments.Select(fragment => fragment.TexteOriginal.Trim()));
+
+            // Un assemblage ne vaut que ce que vaut son fragment le moins sûr.
+            assemblee.Confiance = fragments.Min(fragment => fragment.Confiance);
+
+            return assemblee;
+        }
+
+        private static bool MemeBulle(ZoneDeTexte une, ZoneDeTexte autre)
+        {
+            if (ReferenceEquals(une, autre))
+            {
+                return true;
+            }
+
+            // Deux zones sans bulle ne se ressemblent pas pour autant : une onomatopée
+            // n'a rien à voir avec une autre.
+            if (une.Bulle == null || autre.Bulle == null
+                || une.Bulle.Contour.Count != autre.Bulle.Contour.Count)
+            {
+                return false;
+            }
+
+            return !une.Bulle.Contour
+                .Where((point, rang) =>
+                    point.X != autre.Bulle.Contour[rang].X || point.Y != autre.Bulle.Contour[rang].Y)
+                .Any();
+        }
+
+        private static Quadrilatere Englober(IEnumerable<Quadrilatere> rectangles)
+        {
+            List<Coordonnee> coins = rectangles
+                .SelectMany(rectangle => new[]
+                {
+                    rectangle.HautGauche, rectangle.HautDroit, rectangle.BasDroit, rectangle.BasGauche
+                })
+                .ToList();
+
+            double gauche = coins.Min(coin => coin.X);
+            double haut = coins.Min(coin => coin.Y);
+
+            return Quadrilatere.DepuisRectangle(
+                gauche, haut, coins.Max(coin => coin.X) - gauche, coins.Max(coin => coin.Y) - haut);
+        }
+
+        private static double? HauteurMoyenne(IReadOnlyList<ZoneDeTexte> fragments)
+        {
+            double[] mesurees = fragments
+                .Where(fragment => fragment.HauteurDeLigne != null)
+                .Select(fragment => fragment.HauteurDeLigne!.Value)
+                .ToArray();
+
+            return mesurees.Length == 0 ? null : mesurees.Average();
         }
 
         private ZoneDeTexte? ConstruireLaZone(Mat planche, Mat gris, Rect bloc)
@@ -248,7 +353,7 @@ namespace ScanTrad.Pipeline.Lecture
                 .Select(ligne => VersQuadrilatere(ligne.Rect))
                 .ToArray();
 
-            zone.Angle = AngleMoyen(formesDesLignes);
+            zone.Angle = AngleMoyen(formesDesLignes.Select(forme => forme.Angle));
             zone.HauteurDeLigne = formesDesLignes.Average(forme => forme.Hauteur);
 
             // Les lignes d'un bloc sont les morceaux d'une même phrase : on les
@@ -288,7 +393,7 @@ namespace ScanTrad.Pipeline.Lecture
                 new Coordonnee(bas[0].X, bas[0].Y));
         }
 
-        private static double AngleMoyen(IReadOnlyList<Quadrilatere> formes)
+        private static double AngleMoyen(IEnumerable<double> angles)
         {
             // On additionne les directions plutôt que les angles : la moyenne
             // arithmétique de 179° et -179° donnerait 0°, alors que la bonne réponse
@@ -296,9 +401,9 @@ namespace ScanTrad.Pipeline.Lecture
             double sommeX = 0;
             double sommeY = 0;
 
-            foreach (Quadrilatere forme in formes)
+            foreach (double angle in angles)
             {
-                double radians = forme.Angle * Math.PI / 180;
+                double radians = angle * Math.PI / 180;
 
                 sommeX += Math.Cos(radians);
                 sommeY += Math.Sin(radians);

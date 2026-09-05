@@ -46,9 +46,17 @@ namespace ScanTrad.Pipeline.Abstractions
         /// son texte et la confiance du moteur. La liste est vide si la planche ne
         /// contient aucun texte lisible.
         /// <para>
-        /// La sortie est brute : ni regroupement en bulles, ni ordre de lecture. Ce
-        /// sont des calculs sur l'ensemble de la planche, qui demandent une
+        /// La sortie est brute : ni regroupement par proximité, ni ordre de lecture.
+        /// Ce sont des calculs sur l'ensemble de la planche, qui demandent une
         /// connaissance du manga qu'un moteur d'OCR n'a pas.
+        /// </para>
+        /// <para>
+        /// Une seule garantie est faite sur l'ensemble : <b>deux zones ne partagent
+        /// jamais la même bulle</b>. Une bulle liée, dont les lobes communiquent,
+        /// donne une zone unique portant le texte des deux. Ce n'est pas un choix de
+        /// présentation mais une question de cohérence : deux zones qui se croiraient
+        /// chacune propriétaire de toute la bulle feraient déborder leur rendu l'une
+        /// sur l'autre.
         /// </para>
         /// </returns>
         /// <exception cref="ArgumentNullException">
