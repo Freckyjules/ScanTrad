@@ -4,7 +4,7 @@
 - **Toujours me répondre en français.**
 
 ## Conventions de code C#
-Les conventions de code C# sont décrites dans [ScanTrad/CLAUDE.md](ScanTrad/CLAUDE.md)
+Les conventions de code C# sont décrites dans [backend/CLAUDE.md](backend/CLAUDE.md)
 
 ## Convention de commits (Git)
 Utiliser **Conventional Commits** pour tous les messages de commit : `type(portée): description`.
