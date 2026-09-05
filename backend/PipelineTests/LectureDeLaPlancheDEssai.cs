@@ -128,6 +128,7 @@ namespace ScanTrad.PipelineTests
             copie.Angle = zone.Angle;
             copie.HauteurDeLigne = zone.HauteurDeLigne;
             copie.Bulle = Copier(zone.Bulle);
+            copie.CouleurDeFond = Copier(zone.CouleurDeFond);
             copie.TexteOriginal = zone.TexteOriginal;
             copie.TexteTraduit = zone.TexteTraduit;
             copie.Confiance = zone.Confiance;
@@ -144,6 +145,16 @@ namespace ScanTrad.PipelineTests
             }
 
             return new Bulle(bulle.Contour.Select(point => Copier(point)));
+        }
+
+        private static Couleur? Copier(Couleur? couleur)
+        {
+            if (couleur == null)
+            {
+                return null;
+            }
+
+            return new Couleur(couleur.Rouge, couleur.Vert, couleur.Bleu);
         }
 
         private static Quadrilatere Copier(Quadrilatere quadrilatere)

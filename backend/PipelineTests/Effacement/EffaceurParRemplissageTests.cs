@@ -95,17 +95,56 @@ namespace ScanTrad.PipelineTests.Effacement
         }
 
         /// <summary>
-        /// La couleur de remplissage se choisit : toutes les bulles ne sont pas
-        /// blanches, celles des pensées ou des cris sont parfois sombres.
+        /// La couleur de repli se choisit : toutes les bulles ne sont pas blanches,
+        /// celles des pensées ou des cris sont parfois sombres.
         /// </summary>
         [Fact]
-        public void Effacer_AvecUneAutreCouleur_LUtilise()
+        public void Effacer_SansFondMesure_UtiliseLaCouleurDeRepli()
         {
             Planche planche = PlancheSombre(ZoneAvecBulle(20, 20, 60, 60));
 
             Planche nettoyee = new EffaceurParRemplissage(Scalar.All(128)).Effacer(planche);
 
             Assert.Equal(128, Pixel(nettoyee, 50, 50));
+        }
+
+        /// <summary>
+        /// Quand la lecture a mesuré le fond de la bulle, c'est de cette couleur-là
+        /// qu'on repeint.
+        /// </summary>
+        /// <remarks>
+        /// Les trois composantes sont vérifiées séparément : les inverser passerait
+        /// inaperçu sur un gris, alors que le modèle nomme ses composantes en rouge,
+        /// vert, bleu et qu'OpenCV les range dans l'autre sens.
+        /// </remarks>
+        [Fact]
+        public void Effacer_ZoneAvecUnFondMesure_RepeintDeCetteCouleur()
+        {
+            ZoneDeTexte zone = ZoneAvecBulle(20, 20, 60, 60);
+            zone.CouleurDeFond = new Couleur(250, 240, 230);
+
+            Planche nettoyee = new EffaceurParRemplissage().Effacer(PlancheSombre(zone));
+
+            Vec3b pixel = PixelCouleur(nettoyee, 50, 50);
+
+            Assert.Equal(230, pixel.Item0);
+            Assert.Equal(240, pixel.Item1);
+            Assert.Equal(250, pixel.Item2);
+        }
+
+        /// <summary>
+        /// Le fond mesuré l'emporte sur la couleur réglée : la planche en sait plus
+        /// long qu'un réglage posé à l'avance.
+        /// </summary>
+        [Fact]
+        public void Effacer_UnFondMesure_PrimeSurLaCouleurDeRepli()
+        {
+            ZoneDeTexte zone = ZoneAvecBulle(20, 20, 60, 60);
+            zone.CouleurDeFond = new Couleur(200, 200, 200);
+
+            Planche nettoyee = new EffaceurParRemplissage(Scalar.All(128)).Effacer(PlancheSombre(zone));
+
+            Assert.Equal(200, Pixel(nettoyee, 50, 50));
         }
 
         /// <summary>
@@ -175,9 +214,15 @@ namespace ScanTrad.PipelineTests.Effacement
 
         private static int Pixel(Planche planche, int x, int y)
         {
+            return PixelCouleur(planche, x, y).Item0;
+        }
+
+        private static Vec3b PixelCouleur(Planche planche, int x, int y)
+        {
             using Mat image = Cv2.ImDecode(planche.Image, ImreadModes.Color);
 
-            return image.At<Vec3b>(y, x).Item0;
+            // OpenCV range les composantes en bleu-vert-rouge : Item0 est le bleu.
+            return image.At<Vec3b>(y, x);
         }
     }
 }

@@ -18,6 +18,7 @@ namespace ScanTrad.Pipeline.Models
         private double angle;
         private double? hauteurDeLigne;
         private Bulle? bulle;
+        private Couleur? couleurDeFond;
         private string texteOriginal;
         private string? texteTraduit;
         private double confiance;
@@ -36,6 +37,7 @@ namespace ScanTrad.Pipeline.Models
             angle = 0;
             hauteurDeLigne = null;
             bulle = null;
+            couleurDeFond = null;
             texteOriginal = string.Empty;
             texteTraduit = null;
             confiance = 0;
@@ -100,6 +102,27 @@ namespace ScanTrad.Pipeline.Models
         {
             get { return bulle; }
             set { bulle = value; }
+        }
+
+        /// <summary>
+        /// La couleur du papier à l'intérieur de la bulle, ou <c>null</c> si elle n'a
+        /// pas été mesurée. C'est de cette couleur que l'effacement repeint, pour que
+        /// la zone nettoyée se fonde dans la bulle au lieu d'y faire une tache.
+        /// </summary>
+        /// <remarks>
+        /// Mesurée à la lecture, sur les pixels que la diffusion a parcourus — donc
+        /// sur le fond seul, l'encre des lettres ayant arrêté la diffusion. Elle est
+        /// stockée parce qu'elle ne se retrouve pas ensuite : le contour rendu est un
+        /// polygone simplifié, et le détail des pixels d'origine est perdu.
+        /// <para>
+        /// Une bulle blanche donne rarement 255 : les scans tirent vers le crème ou le
+        /// gris, et c'est justement l'écart que cette mesure rattrape.
+        /// </para>
+        /// </remarks>
+        public Couleur? CouleurDeFond
+        {
+            get { return couleurDeFond; }
+            set { couleurDeFond = value; }
         }
 
         /// <summary>
@@ -174,6 +197,10 @@ namespace ScanTrad.Pipeline.Models
                 ? "(pas mesurée)"
                 : FormattableString.Invariant($"{hauteurDeLigne.Value:0.#} px");
 
+            string fond = couleurDeFond == null
+                ? "(pas mesurée)"
+                : couleurDeFond.ToString();
+
             string[] lignes =
             {
                 FormattableString.Invariant($"texte original : « {texteOriginal} »"),
@@ -182,6 +209,7 @@ namespace ScanTrad.Pipeline.Models
                 FormattableString.Invariant($"rectangle      : {rectangle}"),
                 FormattableString.Invariant($"angle du texte : {angle:0.#}°"),
                 FormattableString.Invariant($"hauteur ligne  : {hauteur}"),
+                FormattableString.Invariant($"couleur fond   : {fond}"),
                 FormattableString.Invariant($"bulle          : {descriptionBulle}"),
                 FormattableString.Invariant($"ordre lecture  : {rang}")
             };

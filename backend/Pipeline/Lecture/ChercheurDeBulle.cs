@@ -5,7 +5,7 @@ namespace ScanTrad.Pipeline.Lecture
 {
     /// <summary>
     /// Retrouve le contour de la bulle qui entoure un bloc de texte, par diffusion
-    /// dans les pixels clairs.
+    /// dans les pixels clairs, et mesure la couleur de son papier.
     /// </summary>
     /// <remarks>
     /// Aucun modèle ne détecte les bulles : elles sont reconstruites ici par de
@@ -15,6 +15,11 @@ namespace ScanTrad.Pipeline.Lecture
     /// Deux réglages viennent de mesures et méritent qu'on ne les défasse pas :
     /// l'amorce se cherche <em>dans</em> les interlignes du bloc et non autour de
     /// lui, et les filaments se coupent par une ouverture appliquée par paliers.
+    /// </para>
+    /// <para>
+    /// La couleur du fond se mesure ici et pas ailleurs, parce que le masque de la
+    /// diffusion n'existe qu'ici. Il tombe bien : la diffusion s'arrête sur l'encre,
+    /// donc ce masque est exactement le papier de la bulle, lettres exclues.
     /// </para>
     /// </remarks>
     public static class ChercheurDeBulle
@@ -60,23 +65,46 @@ namespace ScanTrad.Pipeline.Lecture
         #region Méthodes
 
         /// <summary>
-        /// Cherche le contour de la bulle entourant un bloc de texte.
+        /// Cherche le contour de la bulle entourant un bloc de texte, et mesure au
+        /// passage la couleur de son papier.
         /// </summary>
-        /// <param name="gris">La planche en niveaux de gris.</param>
+        /// <remarks>
+        /// Les deux vont ensemble parce que la couleur se mesure sur le masque de la
+        /// diffusion, qui n'existe qu'ici : ce qui ressort est un polygone simplifié,
+        /// et le détail des pixels est perdu ensuite.
+        /// </remarks>
+        /// <param name="gris">La planche en niveaux de gris, où se fait la diffusion.</param>
+        /// <param name="couleur">
+        /// La même planche en couleur, d'où se lit la couleur du fond. Un niveau de
+        /// gris ne suffirait pas : un beige et un gris bleuté de même luminosité
+        /// donnent le même octet.
+        /// </param>
         /// <param name="bloc">La boîte du bloc de texte.</param>
+        /// <param name="couleurDeFond">
+        /// La couleur du papier à l'intérieur de la bulle, ou <c>null</c> s'il n'y a
+        /// pas de bulle.
+        /// </param>
         /// <returns>
         /// La bulle trouvée, ou <c>null</c> s'il n'y en a pas — une onomatopée
         /// dessinée à même la planche n'en a aucune.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Levée si <paramref name="gris"/> vaut <c>null</c>.
+        /// Levée si <paramref name="gris"/> ou <paramref name="couleur"/> vaut
+        /// <c>null</c>.
         /// </exception>
-        public static Bulle? Chercher(Mat gris, Rect bloc)
+        public static Bulle? Chercher(Mat gris, Mat couleur, Rect bloc, out Couleur? couleurDeFond)
         {
             if (gris == null)
             {
                 throw new ArgumentNullException(nameof(gris));
             }
+
+            if (couleur == null)
+            {
+                throw new ArgumentNullException(nameof(couleur));
+            }
+
+            couleurDeFond = null;
 
             using Mat? brut = Remplir(gris, bloc);
 
@@ -87,9 +115,14 @@ namespace ScanTrad.Pipeline.Lecture
 
             Point[]? contour = ChoisirLeContour(brut, bloc);
 
-            return contour == null
-                ? null
-                : new Bulle(contour.Select(point => new Coordonnee(point.X, point.Y)));
+            if (contour == null)
+            {
+                return null;
+            }
+
+            couleurDeFond = MesurerLeFond(couleur, brut, contour);
+
+            return new Bulle(contour.Select(point => new Coordonnee(point.X, point.Y)));
         }
 
         #endregion
@@ -130,6 +163,39 @@ namespace ScanTrad.Pipeline.Lecture
             }
 
             return CouvreLeBloc(retenu, bloc) ? retenu : null;
+        }
+
+        private static Couleur? MesurerLeFond(Mat couleur, Mat brut, Point[] contour)
+        {
+            // On croise deux masques. Celui de la diffusion ne contient que le papier :
+            // l'encre des lettres l'a arrêtée, elles n'y sont donc pas, et la moyenne
+            // ne se fait pas tirer vers le noir. Celui du contour retenu écarte ce
+            // qu'une fuite aurait ramassé dans le décor avant que l'ouverture ne la
+            // coupe.
+            using Mat interieur = Mat.Zeros(brut.Size(), MatType.CV_8UC1).ToMat();
+
+            Cv2.FillPoly(interieur, new[] { contour }, Scalar.All(255));
+            Cv2.BitwiseAnd(interieur, brut, interieur);
+
+            if (Cv2.CountNonZero(interieur) == 0)
+            {
+                return null;
+            }
+
+            Scalar moyenne = Cv2.Mean(couleur, interieur);
+
+            // OpenCV range les canaux en bleu-vert-rouge.
+            return new Couleur(
+                Arrondir(moyenne.Val2),
+                Arrondir(moyenne.Val1),
+                Arrondir(moyenne.Val0));
+        }
+
+        private static int Arrondir(double composante)
+        {
+            // Une moyenne ne peut pas sortir de l'intervalle des valeurs moyennées,
+            // mais le bornage coûte moins cher qu'une exception un jour de surprise.
+            return Math.Clamp((int)Math.Round(composante), 0, 255);
         }
 
         private static Mat Ouvrir(Mat masque, Rect bloc, int rayon)

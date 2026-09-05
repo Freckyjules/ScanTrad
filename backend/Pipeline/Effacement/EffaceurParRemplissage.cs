@@ -9,8 +9,15 @@ namespace ScanTrad.Pipeline.Effacement
     /// </summary>
     /// <remarks>
     /// La méthode la plus simple qui marche, et elle marche sur l'immense majorité
-    /// des planches : une bulle de manga est blanche et uniforme, donc la repeindre
-    /// en blanc efface le texte sans laisser de trace.
+    /// des planches : une bulle de manga est unie, donc la repeindre de sa propre
+    /// couleur efface le texte sans laisser de trace.
+    /// <para>
+    /// Cette couleur est celle que la lecture a mesurée à l'intérieur de la bulle, et
+    /// non un blanc décrété. Une bulle blanche donne rarement 255 : les scans tirent
+    /// vers le crème ou le gris, et un remplissage en blanc pur y ferait une tache
+    /// plus claire que le reste de la bulle. La couleur réglée sur l'effaceur ne sert
+    /// que de repli, là où rien n'a été mesuré.
+    /// </para>
     /// <para>
     /// Elle montre ses limites sur les bulles tramées ou en dégradé, où le
     /// remplissage uni se verra. Le remède, plus tard, est l'inpainting : n'effacer
@@ -34,7 +41,8 @@ namespace ScanTrad.Pipeline.Effacement
         #region Constructeurs
 
         /// <summary>
-        /// Initialise un effaceur qui repeint les bulles en blanc.
+        /// Initialise un effaceur qui se rabat sur le blanc pour les bulles dont le
+        /// fond n'a pas été mesuré.
         /// </summary>
         public EffaceurParRemplissage()
             : this(Scalar.All(255))
@@ -42,10 +50,11 @@ namespace ScanTrad.Pipeline.Effacement
         }
 
         /// <summary>
-        /// Initialise un effaceur avec la couleur de remplissage indiquée.
+        /// Initialise un effaceur avec la couleur de repli indiquée.
         /// </summary>
         /// <param name="couleur">
-        /// La couleur dont on repeint l'intérieur des bulles, en bleu-vert-rouge.
+        /// La couleur dont on repeint les bulles dont le fond n'a pas été mesuré, en
+        /// bleu-vert-rouge.
         /// </param>
         public EffaceurParRemplissage(Scalar couleur)
         {
@@ -57,7 +66,9 @@ namespace ScanTrad.Pipeline.Effacement
         #region Propriétés
 
         /// <summary>
-        /// La couleur dont on repeint l'intérieur des bulles.
+        /// La couleur de repli, dont on repeint les bulles dont la lecture n'a pas
+        /// mesuré le fond. Quand <see cref="ZoneDeTexte.CouleurDeFond"/> est
+        /// renseignée, c'est elle qui sert.
         /// </summary>
         public Scalar Couleur
         {
@@ -99,7 +110,8 @@ namespace ScanTrad.Pipeline.Effacement
                     continue;
                 }
 
-                Cv2.FillPoly(nettoyee, new[] { VersContourOpenCv(zone.Bulle) }, couleur, LineTypes.AntiAlias);
+                Cv2.FillPoly(
+                    nettoyee, new[] { VersContourOpenCv(zone.Bulle) }, Teinte(zone), LineTypes.AntiAlias);
             }
 
             // ImDecode a produit une copie : la planche reçue n'a pas été touchée, et
@@ -110,6 +122,22 @@ namespace ScanTrad.Pipeline.Effacement
         #endregion
 
         #region Méthodes privées
+
+        private Scalar Teinte(ZoneDeTexte zone)
+        {
+            // La couleur mesurée sur la planche l'emporte : un scan tire vers le crème
+            // ou le gris, et repeindre en blanc pur y laisserait une tache plus claire
+            // que le reste de la bulle. La couleur réglée ne sert que là où la lecture
+            // n'a rien mesuré.
+            if (zone.CouleurDeFond == null)
+            {
+                return couleur;
+            }
+
+            Couleur fond = zone.CouleurDeFond;
+
+            return new Scalar(fond.Bleu, fond.Vert, fond.Rouge);
+        }
 
         private static Point[] VersContourOpenCv(Bulle bulle)
         {

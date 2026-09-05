@@ -112,6 +112,10 @@ namespace ScanTrad.PipelineTests.Lecture
             foreach (ZoneDeTexte zone in lecture.Zones.Where(zone => zone.Bulle != null))
             {
                 Assert.True(zone.Bulle!.Contour.Count >= 3);
+
+                // Bulle et couleur de fond se mesurent d'un même geste, sur le même
+                // masque : l'une sans l'autre trahirait une régression.
+                Assert.NotNull(zone.CouleurDeFond);
             }
 
             sortie.WriteLine($"{avecBulle} bulles retrouvées sur {lecture.Zones.Count} blocs.");
@@ -149,9 +153,10 @@ namespace ScanTrad.PipelineTests.Lecture
             {
                 string bulle = zone.Bulle == null ? "sans bulle" : $"{zone.Bulle.Contour.Count} pts";
                 string ligne = zone.HauteurDeLigne == null ? "?" : $"{zone.HauteurDeLigne.Value:0} px";
+                string fond = zone.CouleurDeFond == null ? "?" : zone.CouleurDeFond.ToString();
 
                 sortie.WriteLine(
-                    $"[{zone.Confiance:0.00}] ({bulle,9}) {zone.Angle,6:0.0}° ligne {ligne,6}  {zone.TexteOriginal}");
+                    $"[{zone.Confiance:0.00}] ({bulle,9}) {zone.Angle,6:0.0}° ligne {ligne,6}  fond {fond,-28}  {zone.TexteOriginal}");
             }
         }
     }

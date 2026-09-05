@@ -256,7 +256,12 @@ namespace ScanTrad.Pipeline.Lecture
             // recoupera lui-même, et pas au même endroit.
             zone.TexteOriginal = string.Join(" ", lignes.Select(ligne => ligne.Text.Trim()));
             zone.Confiance = confiance;
-            zone.Bulle = ChercheurDeBulle.Chercher(gris, bloc);
+
+            // La bulle et la couleur de son papier se trouvent d'un même geste : la
+            // couleur se lit sur le masque de la diffusion, qui ne survit pas à
+            // l'appel.
+            zone.Bulle = ChercheurDeBulle.Chercher(gris, planche, bloc, out Couleur? fond);
+            zone.CouleurDeFond = fond;
 
             // Le texte traduit et l'ordre de lecture relèvent d'étapes ultérieures :
             // le lecteur ne doit surtout pas y toucher.
