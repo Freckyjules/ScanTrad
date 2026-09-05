@@ -145,10 +145,9 @@ namespace ScanTrad.PipelineTests.Regroupement
 
         /// <summary>
         /// Deux lignes empilées sans bulle appartiennent à un même cartouche sans
-        /// contour et devraient se rejoindre. Le repli géométrique n'est pas encore
-        /// écrit : aujourd'hui chaque zone sans bulle ressort seule.
+        /// contour : le repli géométrique les rassemble faute de mieux.
         /// </summary>
-        [Fact(Skip = "Le repli par proximité reste à écrire.")]
+        [Fact]
         public void Regrouper_ZonesSansBulleEmpilees_NeFontQuUnBloc()
         {
             IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
@@ -158,6 +157,30 @@ namespace ScanTrad.PipelineTests.Regroupement
             });
 
             Assert.Equal("YOU CAN'T", Assert.Single(zones).TexteOriginal);
+        }
+
+        /// <summary>
+        /// Une ligne dont la bulle n'a pas ete détectée rejoint quand même son bloc si
+        /// son centre tombe dans la bulle d'une voisine. La détection rate régulièrement
+        /// une ligne au milieu d'une bulle, et sans ce rattrapage elle sortirait seule
+        /// au beau milieu de sa propre phrase.
+        /// </summary>
+        [Fact]
+        public void Regrouper_LigneSansBulleAuMilieuDuneBulleConnue_RejointLeBloc()
+        {
+            Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
+
+            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            {
+                ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
+                ConstruireLigne("CANT", 252, 1058, 121, 45, null),
+                ConstruireLigne("GO OFF", 236, 1099, 153, 44, bulle)
+            });
+
+            ZoneDeTexte bloc = Assert.Single(zones);
+
+            Assert.Equal("YOU CANT GO OFF", bloc.TexteOriginal);
+            Assert.NotNull(bloc.Bulle);
         }
 
         /// <summary>

@@ -25,6 +25,31 @@ namespace ScanTrad.Pipeline.Regroupement
     /// </remarks>
     public class RegroupeurDeZones : IRegroupeurDeZones
     {
+        #region Constantes
+
+        /// <summary>
+        /// Écart vertical toléré entre deux lignes successives d'un même bloc,
+        /// exprimé en multiple de la hauteur d'une ligne. Au-delà, on considère
+        /// qu'on a changé de bloc.
+        /// </summary>
+        /// <remarks>
+        /// La valeur dépasse 1 et ce n'est pas une erreur : les quadrilatères rendus
+        /// par un détecteur collent au texte, alors que l'interligne d'une bulle est
+        /// bien plus généreux. Sur une planche d'essai, deux lignes voisines hautes de
+        /// 20 pixels étaient séparées de 22 — un seuil inférieur à 1 les aurait
+        /// déclarées étrangères l'une à l'autre.
+        /// </remarks>
+        private const double EcartVerticalMaximal = 1.5;
+
+        /// <summary>
+        /// Part de largeur que deux lignes doivent avoir en commun pour être jugées
+        /// alignées. Empêche de coller ensemble deux textes voisins situés à la même
+        /// hauteur.
+        /// </summary>
+        private const double RecouvrementHorizontalMinimal = 0.3;
+
+        #endregion
+
         #region Méthodes
 
         /// <inheritdoc />
@@ -58,6 +83,12 @@ namespace ScanTrad.Pipeline.Regroupement
                 }
             }
 
+            // La détection de bulles est imparfaite : au milieu d'une bulle, une ligne
+            // peut très bien n'en avoir aucune. Mais si son centre tombe dans la bulle
+            // d'une voisine, elle y est — c'est exact, sans aucun seuil. Sur une
+            // planche d'essai, « CAN'T » sortait seul au milieu de « YOU GO OFF ».
+            List<ZoneDeTexte> orphelines = RattacherParLaBulleDesVoisines(blocs, sansBulle);
+
             List<ZoneDeTexte> resultat = new List<ZoneDeTexte>();
 
             foreach (List<ZoneDeTexte> bloc in blocs)
@@ -65,7 +96,7 @@ namespace ScanTrad.Pipeline.Regroupement
                 resultat.Add(Fusionner(bloc));
             }
 
-            resultat.AddRange(RassemblerSansBulle(sansBulle));
+            resultat.AddRange(RassemblerSansBulle(orphelines));
 
             return resultat;
         }
@@ -74,14 +105,138 @@ namespace ScanTrad.Pipeline.Regroupement
 
         #region Méthodes privées
 
+        private static List<ZoneDeTexte> RattacherParLaBulleDesVoisines(
+            List<List<ZoneDeTexte>> blocs,
+            List<ZoneDeTexte> sansBulle)
+        {
+            List<ZoneDeTexte> restantes = new List<ZoneDeTexte>();
+
+            foreach (ZoneDeTexte orpheline in sansBulle.OrderBy(zone => zone.Quadrilatere.Centre.Y))
+            {
+                List<ZoneDeTexte>? accueil = TrouverLeBlocAccueillant(blocs, orpheline);
+
+                if (accueil == null)
+                {
+                    restantes.Add(orpheline);
+                }
+                else
+                {
+                    accueil.Add(orpheline);
+                }
+            }
+
+            return restantes;
+        }
+
         private static List<ZoneDeTexte> RassemblerSansBulle(List<ZoneDeTexte> zones)
         {
-            // Repli pour les zones dont aucune bulle n'est connue. Aujourd'hui chacune
-            // ressort seule, ce qui est juste pour une onomatopée dessinée à même la
-            // planche — le cas de loin le plus fréquent. Un rassemblement géométrique,
-            // par proximité et alignement, viendra ici quand un cartouche sans contour
-            // posera problème.
-            return new List<ZoneDeTexte>(zones);
+            // Repli pour les zones dont aucune bulle n'est connue : cartouches sans
+            // contour, textes posés sur le décor. On n'a plus que la géométrie —
+            // deux lignes vont ensemble si elles se recouvrent horizontalement et se
+            // suivent de près verticalement.
+            //
+            // Moins sûr que le rassemblement par bulle : deux textes voisins à la
+            // même hauteur peuvent être fondus, et un texte très aéré coupé en deux.
+            // C'est le prix à payer quand le dessinateur n'a pas tracé de contour.
+            List<ZoneDeTexte> deHautEnBas = zones
+                .OrderBy(zone => zone.Quadrilatere.Centre.Y)
+                .ToList();
+
+            List<List<ZoneDeTexte>> blocs = new List<List<ZoneDeTexte>>();
+
+            foreach (ZoneDeTexte zone in deHautEnBas)
+            {
+                List<ZoneDeTexte>? bloc = TrouverLeBlocQuiSePoursuit(blocs, zone);
+
+                if (bloc == null)
+                {
+                    blocs.Add(new List<ZoneDeTexte> { zone });
+                }
+                else
+                {
+                    bloc.Add(zone);
+                }
+            }
+
+            return blocs.Select(Fusionner).ToList();
+        }
+
+        private static List<ZoneDeTexte>? TrouverLeBlocQuiSePoursuit(
+            List<List<ZoneDeTexte>> blocs,
+            ZoneDeTexte zone)
+        {
+            foreach (List<ZoneDeTexte> bloc in blocs)
+            {
+                // On confronte à la dernière ligne du bloc, la plus basse : c'est
+                // celle que la nouvelle est censée suivre.
+                ZoneDeTexte derniere = bloc[bloc.Count - 1];
+
+                if (SontVoisines(derniere, zone))
+                {
+                    return bloc;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool SontVoisines(ZoneDeTexte premiere, ZoneDeTexte seconde)
+        {
+            return SeSuivent(premiere, seconde) && SAlignent(premiere, seconde);
+        }
+
+        private static bool SeSuivent(ZoneDeTexte premiere, ZoneDeTexte seconde)
+        {
+            double hautPremiere = Math.Min(
+                premiere.Quadrilatere.HautGauche.Y, premiere.Quadrilatere.HautDroit.Y);
+            double basPremiere = Math.Max(
+                premiere.Quadrilatere.BasGauche.Y, premiere.Quadrilatere.BasDroit.Y);
+            double hautSeconde = Math.Min(
+                seconde.Quadrilatere.HautGauche.Y, seconde.Quadrilatere.HautDroit.Y);
+            double basSeconde = Math.Max(
+                seconde.Quadrilatere.BasGauche.Y, seconde.Quadrilatere.BasDroit.Y);
+
+            // Écart mesuré sans présumer laquelle est au-dessus de l'autre : la même
+            // règle sert à enchaîner deux lignes et à rattacher une orpheline à un
+            // bloc, où elle peut aussi bien venir du dessus.
+            double ecart = Math.Max(hautPremiere, hautSeconde) - Math.Min(basPremiere, basSeconde);
+
+            double hauteurDeReference = Math.Max(
+                premiere.Quadrilatere.Hauteur, seconde.Quadrilatere.Hauteur);
+
+            // Un écart négatif signifie que les deux lignes se chevauchent : elles
+            // sont alors forcément assez proches pour appartenir au même bloc.
+            return ecart <= hauteurDeReference * EcartVerticalMaximal;
+        }
+
+        private static bool SAlignent(ZoneDeTexte premiere, ZoneDeTexte seconde)
+        {
+            double gauchePremiere = Math.Min(
+                premiere.Quadrilatere.HautGauche.X, premiere.Quadrilatere.BasGauche.X);
+            double droitePremiere = Math.Max(
+                premiere.Quadrilatere.HautDroit.X, premiere.Quadrilatere.BasDroit.X);
+            double gaucheSeconde = Math.Min(
+                seconde.Quadrilatere.HautGauche.X, seconde.Quadrilatere.BasGauche.X);
+            double droiteSeconde = Math.Max(
+                seconde.Quadrilatere.HautDroit.X, seconde.Quadrilatere.BasDroit.X);
+
+            double largeurCommune = Math.Min(droitePremiere, droiteSeconde)
+                - Math.Max(gauchePremiere, gaucheSeconde);
+
+            if (largeurCommune <= 0)
+            {
+                return false;
+            }
+
+            double laPlusEtroite = Math.Min(
+                droitePremiere - gauchePremiere, droiteSeconde - gaucheSeconde);
+
+            if (laPlusEtroite <= 0)
+            {
+                return false;
+            }
+
+            return largeurCommune / laPlusEtroite >= RecouvrementHorizontalMinimal;
         }
 
         private static List<ZoneDeTexte>? TrouverLeBlocAccueillant(
@@ -106,6 +261,13 @@ namespace ScanTrad.Pipeline.Regroupement
 
         private static ZoneDeTexte Fusionner(List<ZoneDeTexte> bloc)
         {
+            if (bloc.Count == 1)
+            {
+                // Rien à fusionner : on rend la zone telle quelle plutôt que d'en
+                // reconstruire une copie, ce qui préserve sa géométrie au pixel près.
+                return bloc[0];
+            }
+
             // De haut en bas d'abord : dans une bulle, les lignes s'empilent. La
             // gauche-droite ne départage que deux fragments à la même hauteur. À ne
             // pas confondre avec l'ordre de lecture des bulles sur la page, qui lui
