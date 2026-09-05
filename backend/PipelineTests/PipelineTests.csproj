@@ -26,4 +26,10 @@
     <ProjectReference Include="..\Pipeline\Pipeline.csproj" />
   </ItemGroup>
 
+  <!-- Les planches d'exemple sont recopiées à côté du binaire de test : sans ça,
+       le test s'exécute depuis bin\Debug\net8.0 et ne les trouverait pas. -->
+  <ItemGroup>
+    <None Update="images\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
