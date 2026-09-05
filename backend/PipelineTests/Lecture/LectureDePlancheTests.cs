@@ -28,8 +28,6 @@ namespace ScanTrad.PipelineTests.Lecture
     [Trait("Categorie", "Integration")]
     public class LectureDePlancheTests
     {
-        private const string NomDeLaPlanche = "Akashic.jpg";
-        private const string NomDuModele = "comictextdetector.onnx";
         private const string LecteurPaddleOcr = "PaddleOCR";
         private const string LecteurComicTextDetector = "ComicTextDetector";
 
@@ -69,7 +67,7 @@ namespace ScanTrad.PipelineTests.Lecture
         [MemberData(nameof(LesLecteurs))]
         public async Task LireAsync_SurUnePlancheReelle_RespecteLeContrat(string nomDuLecteur)
         {
-            byte[] image = await ChargerLaPlancheAsync();
+            byte[] image = await PlancheDEssai.ChargerAsync();
 
             using ILecteurDePage lecteur = ConstruireLeLecteur(nomDuLecteur);
 
@@ -94,10 +92,10 @@ namespace ScanTrad.PipelineTests.Lecture
         [Fact]
         public async Task LireAsync_AvecComicTextDetector_RetrouveDesBulles()
         {
-            byte[] image = await ChargerLaPlancheAsync();
+            byte[] image = await PlancheDEssai.ChargerAsync();
 
             using LecteurDePageComicTextDetector lecteur =
-                new LecteurDePageComicTextDetector(TrouverLeModele());
+                new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele());
 
             IReadOnlyList<ZoneDeTexte> zones = await ((ILecteurDePage)lecteur).LireAsync(image);
 
@@ -131,44 +129,11 @@ namespace ScanTrad.PipelineTests.Lecture
                     return new LecteurDePagePaddleOcr();
 
                 case LecteurComicTextDetector:
-                    return new LecteurDePageComicTextDetector(TrouverLeModele());
+                    return new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele());
 
                 default:
                     throw new ArgumentException($"Lecteur inconnu : {nom}", nameof(nom));
             }
-        }
-
-        private static async Task<byte[]> ChargerLaPlancheAsync()
-        {
-            string chemin = Path.Combine(AppContext.BaseDirectory, "images", NomDeLaPlanche);
-
-            Assert.True(
-                File.Exists(chemin),
-                $"La planche d'exemple est introuvable : {chemin}. " +
-                "Vérifier que le dossier images est bien recopié dans le dossier de sortie.");
-
-            return await File.ReadAllBytesAsync(chemin);
-        }
-
-        private static string TrouverLeModele()
-        {
-            DirectoryInfo? dossier = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (dossier != null)
-            {
-                string candidat = Path.Combine(dossier.FullName, "modeles", NomDuModele);
-
-                if (File.Exists(candidat))
-                {
-                    return candidat;
-                }
-
-                dossier = dossier.Parent;
-            }
-
-            throw new FileNotFoundException(
-                $"Le modèle {NomDuModele} est introuvable. Le déposer dans backend/modeles/ — " +
-                "il n'est pas versionné, il pèse une centaine de mégaoctets.");
         }
 
         private static void VerifierQueLaZoneEstExploitable(ZoneDeTexte zone)
@@ -198,7 +163,7 @@ namespace ScanTrad.PipelineTests.Lecture
         private void Decrire(string nomDuLecteur, IReadOnlyList<ZoneDeTexte> zones)
         {
             sortie.WriteLine($"Lecteur       : {nomDuLecteur}");
-            sortie.WriteLine($"Planche       : {NomDeLaPlanche}");
+            sortie.WriteLine($"Planche       : {PlancheDEssai.Nom}");
             sortie.WriteLine($"Zones lues    : {zones.Count}");
             sortie.WriteLine($"Avec bulle    : {zones.Count(zone => zone.Bulle != null)} sur {zones.Count}");
             sortie.WriteLine($"Confiance moy.: {zones.Average(zone => zone.Confiance):0.###}");
