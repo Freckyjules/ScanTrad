@@ -162,6 +162,17 @@ namespace ScanTrad.Pipeline.Models
                 new Coordonnee(x, y + hauteur));
         }
 
+        /// <summary>
+        /// Décrit les quatre coins puis les dimensions et l'inclinaison qu'ils
+        /// impliquent.
+        /// </summary>
+        /// <returns>Une description lisible du quadrilatère.</returns>
+        public override string ToString()
+        {
+            return FormattableString.Invariant($"HG{hautGauche} HD{hautDroit} BD{basDroit} BG{basGauche} ")
+                + FormattableString.Invariant($"[{Largeur:0.#} x {Hauteur:0.#} px, {Angle:0.#}°]");
+        }
+
         #endregion
     }
 }

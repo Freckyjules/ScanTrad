@@ -109,5 +109,42 @@ namespace ScanTrad.Pipeline.Models
         }
 
         #endregion
+
+        #region Méthodes
+
+        /// <summary>
+        /// Décrit la zone sur plusieurs lignes, avec tout ce qu'elle porte. Les
+        /// champs pas encore calculés le disent plutôt que d'afficher du vide, pour
+        /// qu'on distingue « pas encore fait » de « fait, et le résultat est vide ».
+        /// </summary>
+        /// <returns>Une description lisible de la zone, sur plusieurs lignes.</returns>
+        public override string ToString()
+        {
+            string traduction = texteTraduit == null
+                ? "(pas encore traduit)"
+                : "« " + texteTraduit + " »";
+
+            string rang = ordreDeLecture == null
+                ? "(pas encore trié)"
+                : FormattableString.Invariant($"{ordreDeLecture.Value}");
+
+            string descriptionBulle = bulle == null
+                ? "(aucune)"
+                : bulle.ToString();
+
+            string[] lignes =
+            {
+                FormattableString.Invariant($"texte original : « {texteOriginal} »"),
+                FormattableString.Invariant($"traduction     : {traduction}"),
+                FormattableString.Invariant($"confiance      : {confiance:0.###}"),
+                FormattableString.Invariant($"géométrie      : {quadrilatere}"),
+                FormattableString.Invariant($"bulle          : {descriptionBulle}"),
+                FormattableString.Invariant($"ordre lecture  : {rang}")
+            };
+
+            return string.Join(Environment.NewLine, lignes);
+        }
+
+        #endregion
     }
 }

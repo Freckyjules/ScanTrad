@@ -83,6 +83,17 @@ namespace ScanTrad.Pipeline.Models
             return Math.Sqrt((ecartX * ecartX) + (ecartY * ecartY));
         }
 
+        /// <summary>
+        /// Décrit la coordonnée sous la forme « (x, y) ». Les nombres sont écrits
+        /// avec un point décimal quelle que soit la machine, pour que les journaux
+        /// restent comparables.
+        /// </summary>
+        /// <returns>Une description lisible de la coordonnée.</returns>
+        public override string ToString()
+        {
+            return FormattableString.Invariant($"({x:0.#}, {y:0.#})");
+        }
+
         #endregion
     }
 }

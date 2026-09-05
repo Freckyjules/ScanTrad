@@ -149,6 +149,15 @@ namespace ScanTrad.Pipeline.Models
             return dedans;
         }
 
+        /// <summary>
+        /// Décrit la bulle par la taille de son contour et sa position.
+        /// </summary>
+        /// <returns>Une description lisible de la bulle.</returns>
+        public override string ToString()
+        {
+            return FormattableString.Invariant($"contour de {contour.Count} points, centré en {Centre}");
+        }
+
         #endregion
     }
 }
