@@ -2,8 +2,6 @@ using ScanTrad.Pipeline.Abstractions;
 using ScanTrad.Pipeline.Effacement;
 using ScanTrad.Pipeline.Lecture;
 using ScanTrad.Pipeline.Models;
-using ScanTrad.Pipeline.Regroupement;
-using Xunit.Abstractions;
 
 namespace ScanTrad.PipelineTests.Effacement
 {
@@ -50,10 +48,9 @@ namespace ScanTrad.PipelineTests.Effacement
                 lue = await lecteur.LireAsync(originale);
             }
 
-            Planche groupee = new RegroupeurDeZones().Regrouper(lue);
-            Planche nettoyee = new EffaceurParRemplissage().Effacer(groupee);
+            Planche nettoyee = new EffaceurParRemplissage().Effacer(lue);
 
-            int avecBulle = groupee.Zones.Count(zone => zone.Bulle != null);
+            int avecBulle = lue.Zones.Count(zone => zone.Bulle != null);
 
             Assert.NotEqual(originale.Image.Length, nettoyee.Image.Length);
             Assert.Equal(originale.Image, lue.Image);
@@ -61,7 +58,7 @@ namespace ScanTrad.PipelineTests.Effacement
 
             string fichier = Deposer(nettoyee, "Akashic-nettoyee.png");
 
-            sortie.WriteLine($"Blocs           : {groupee.Zones.Count}");
+            sortie.WriteLine($"Blocs           : {lue.Zones.Count}");
             sortie.WriteLine($"Bulles effacées : {avecBulle}");
             sortie.WriteLine($"Poids d'origine : {originale.Image.Length / 1024} Ko");
             sortie.WriteLine($"Poids nettoyé   : {nettoyee.Image.Length / 1024} Ko");

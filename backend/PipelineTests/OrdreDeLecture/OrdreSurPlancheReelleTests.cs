@@ -2,13 +2,11 @@ using ScanTrad.Pipeline.Abstractions;
 using ScanTrad.Pipeline.Lecture;
 using ScanTrad.Pipeline.Models;
 using ScanTrad.Pipeline.OrdreDeLecture;
-using ScanTrad.Pipeline.Regroupement;
-using Xunit.Abstractions;
 
 namespace ScanTrad.PipelineTests.OrdreDeLecture
 {
     /// <summary>
-    /// Enchaîne les trois étapes — lecture, regroupement, ordre — sur une vraie
+    /// Enchaîne la lecture et l'ordre de lecture sur une vraie
     /// planche, et affiche le dialogue obtenu.
     /// </summary>
     /// <remarks>
@@ -40,7 +38,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Theory]
         [InlineData(SensDeLecture.DroiteAGauche)]
         [InlineData(SensDeLecture.GaucheADroite)]
-        public async Task Ordonner_ApresLectureEtRegroupement_DonneUnRangUniqueAChaqueBloc(
+        public async Task Ordonner_ApresUneLecture_DonneUnRangUniqueAChaqueBloc(
             SensDeLecture sens)
         {
             Planche planche = new Planche(await PlancheDEssai.ChargerAsync(), sens);
@@ -55,11 +53,10 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
 
             // Le sens de lecture vient de la planche, pas d'un réglage de
             // l'ordonnanceur : la même instance traite les deux sens.
-            Planche groupee = new RegroupeurDeZones().Regrouper(lue);
             IReadOnlyList<ZoneDeTexte> ordre =
-                new OrdonnanceurParCoupeRecursive().Ordonner(groupee).Zones;
+                new OrdonnanceurParCoupeRecursive().Ordonner(lue).Zones;
 
-            Assert.Equal(groupee.Zones.Count, ordre.Count);
+            Assert.Equal(lue.Zones.Count, ordre.Count);
 
             // Les rangs forment exactement la suite 0, 1, 2… sans trou ni doublon.
             Assert.Equal(
