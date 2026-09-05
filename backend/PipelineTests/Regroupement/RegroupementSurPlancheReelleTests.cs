@@ -16,6 +16,7 @@ namespace ScanTrad.PipelineTests.Regroupement
     /// viennent d'un moteur, avec ses approximations et ses ratés.
     /// </remarks>
     [Trait("Categorie", "Integration")]
+    [Collection(CollectionDIntegration.Nom)]
     public class RegroupementSurPlancheReelleTests
     {
         private readonly ITestOutputHelper sortie;

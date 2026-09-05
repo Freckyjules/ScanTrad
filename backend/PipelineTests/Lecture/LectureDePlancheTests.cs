@@ -26,6 +26,7 @@ namespace ScanTrad.PipelineTests.Lecture
     /// </para>
     /// </remarks>
     [Trait("Categorie", "Integration")]
+    [Collection(CollectionDIntegration.Nom)]
     public class LectureDePlancheTests
     {
         private const string LecteurPaddleOcr = "PaddleOCR";
