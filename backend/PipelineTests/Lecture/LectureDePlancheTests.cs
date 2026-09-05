@@ -1,4 +1,3 @@
-using OpenCvSharp;
 using ScanTrad.Pipeline.Models;
 
 namespace ScanTrad.PipelineTests.Lecture
@@ -11,7 +10,7 @@ namespace ScanTrad.PipelineTests.Lecture
     /// dialogue, chaque bloc est découpé et lu à pleine résolution, et le contour de
     /// sa bulle est reconstruit par diffusion.
     /// <para>
-    /// La planche n'est lue qu'une fois pour toute la classe, via
+    /// La planche n'est lue qu'une fois pour toute la collection d'intégration, via
     /// <see cref="LectureDeLaPlancheDEssai"/> : charger le modèle et analyser l'image
     /// coûte une vingtaine de secondes.
     /// </para>
@@ -23,7 +22,7 @@ namespace ScanTrad.PipelineTests.Lecture
     /// </remarks>
     [Trait("Categorie", "Integration")]
     [Collection(CollectionDIntegration.Nom)]
-    public class LectureDePlancheTests : IClassFixture<LectureDeLaPlancheDEssai>
+    public class LectureDePlancheTests
     {
         private readonly LectureDeLaPlancheDEssai lecture;
         private readonly ITestOutputHelper sortie;
@@ -62,7 +61,10 @@ namespace ScanTrad.PipelineTests.Lecture
                 Assert.True(zone.Rectangle.Hauteur > 0, "La zone a une hauteur nulle.");
 
                 // Ce que la lecture ne doit surtout pas avoir rempli : sinon une
-                // responsabilité a glissé dans le lecteur.
+                // responsabilité a glissé dans le lecteur. Ce contrôle vaut aussi
+                // garde-fou sur le partage — un test d'une étape suivante qui aurait
+                // travaillé sur les zones partagées au lieu d'une copie le ferait
+                // tomber ici.
                 Assert.Null(zone.TexteTraduit);
                 Assert.Null(zone.OrdreDeLecture);
             }
@@ -122,76 +124,17 @@ namespace ScanTrad.PipelineTests.Lecture
         /// <remarks>
         /// Ce test ne vérifie rien et ne doit jamais échouer : il n'y a pas d'égalité à
         /// contrôler sur une détection. Son produit est l'aperçu, qui permet de voir
-        /// d'un coup d'œil ce qui a été trouvé sans quitter Visual Studio — et
+        /// d'un coup d'œil ce qui a été trouvé sans quitter l'explorateur de tests — et
         /// notamment de comprendre pourquoi l'un des trois autres tests est tombé.
         /// </remarks>
         [Fact]
         public void Lecture_AttacheUnApercuDeLaDetection()
         {
-            TestContext.Current.AddAttachment(
-                "apercu-detection", DessinerLApercu(), "image/png");
+            ApercuDePlanche.Attacher("apercu-detection", lecture.Lue);
 
-            sortie.WriteLine("Aperçu attaché : vert = quadrilatère du texte, rouge = contour de la bulle.");
-        }
-
-        private byte[] DessinerLApercu()
-        {
-            using Mat dessin = Cv2.ImDecode(lecture.Originale.Image, ImreadModes.Color);
-
-            for (int rang = 0; rang < lecture.Zones.Count; rang++)
-            {
-                ZoneDeTexte zone = lecture.Zones[rang];
-
-                DessinerLaBulle(dessin, zone.Bulle);
-                DessinerLeQuadrilatere(dessin, zone.Rectangle);
-                DessinerLeRang(dessin, zone.Rectangle, rang);
-            }
-
-            return dessin.ImEncode(".png");
-        }
-
-        private static void DessinerLaBulle(Mat dessin, Bulle? bulle)
-        {
-            if (bulle == null || bulle.Contour.Count < 3)
-            {
-                return;
-            }
-
-            Point[] contour = bulle.Contour.Select(Vers).ToArray();
-
-            Cv2.Polylines(dessin, new[] { contour }, isClosed: true, new Scalar(0, 0, 255), 5);
-        }
-
-        private static void DessinerLeQuadrilatere(Mat dessin, Quadrilatere quadrilatere)
-        {
-            Point[] coins =
-            {
-                Vers(quadrilatere.HautGauche),
-                Vers(quadrilatere.HautDroit),
-                Vers(quadrilatere.BasDroit),
-                Vers(quadrilatere.BasGauche)
-            };
-
-            Cv2.Polylines(dessin, new[] { coins }, isClosed: true, new Scalar(0, 200, 0), 4);
-        }
-
-        private static void DessinerLeRang(Mat dessin, Quadrilatere quadrilatere, int rang)
-        {
-            Point ancre = Vers(quadrilatere.HautGauche);
-
-            Cv2.PutText(
-                dessin,
-                rang.ToString(),
-                new Point(ancre.X, Math.Max(40, ancre.Y - 14)),
-                HersheyFonts.HersheySimplex,
-                1.4,
-                new Scalar(255, 60, 0),
-                4);
-        }
-
-        private static Point Vers(Coordonnee point)
-        {
-            return new Point((int)Math.Round(point.X), (int)Math.Round(point.Y));
+            sortie.WriteLine(
+                "Aperçu attaché : vert = rectangle du bloc, rouge = contour de la bulle, " +
+                "bleu = rang de détection.");
         }
 
         private void Decrire()

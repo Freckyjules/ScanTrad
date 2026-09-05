@@ -1,32 +1,46 @@
-using ScanTrad.Pipeline.Abstractions;
-using ScanTrad.Pipeline.Lecture;
 using ScanTrad.Pipeline.Models;
 using ScanTrad.Pipeline.OrdreDeLecture;
 
 namespace ScanTrad.PipelineTests.OrdreDeLecture
 {
     /// <summary>
-    /// Enchaîne la lecture et l'ordre de lecture sur une vraie
-    /// planche, et affiche le dialogue obtenu.
+    /// Met l'ordre de lecture à l'épreuve sur une vraie planche, et affiche le
+    /// dialogue obtenu.
     /// </summary>
     /// <remarks>
+    /// La lecture ne se refait pas ici : elle vient de
+    /// <see cref="LectureDeLaPlancheDEssai"/>, partagée par toute la collection
+    /// d'intégration. L'ordonnancement, lui, n'est que de la géométrie — il ne coûte
+    /// rien et n'a pas besoin de l'image.
+    /// <para>
+    /// Chaque cas travaille sur une <see cref="LectureDeLaPlancheDEssai.Copier"/> et
+    /// non sur les zones partagées, parce que l'ordonnanceur écrit le rang dans les
+    /// zones qu'on lui donne. Les deux sens s'exécuteraient sinon l'un sur le
+    /// résultat de l'autre.
+    /// </para>
+    /// <para>
     /// Le test ne fige aucun ordre précis. Il vérifie les invariants du rang : chaque
     /// bloc en a un, ils vont de zéro à n-1, et aucun n'est en double. Attendre une
     /// suite de répliques exacte reviendrait à figer le comportement des modèles, qui
-    /// changera à la prochaine version.
+    /// changera à la prochaine version. Ce que l'ordre vaut vraiment se juge sur
+    /// l'aperçu, où le chemin de lecture est tracé d'une bulle à l'autre.
+    /// </para>
     /// </remarks>
     [Trait("Categorie", "Integration")]
     [Collection(CollectionDIntegration.Nom)]
     public class OrdreSurPlancheReelleTests
     {
+        private readonly LectureDeLaPlancheDEssai lecture;
         private readonly ITestOutputHelper sortie;
 
         /// <summary>
-        /// Initialise le test avec le collecteur de sortie fourni par xUnit.
+        /// Initialise le test avec la lecture partagée et le collecteur de sortie.
         /// </summary>
+        /// <param name="lecture">La planche d'essai, déjà lue.</param>
         /// <param name="sortie">Le canal où écrire ce qu'on veut voir apparaître.</param>
-        public OrdreSurPlancheReelleTests(ITestOutputHelper sortie)
+        public OrdreSurPlancheReelleTests(LectureDeLaPlancheDEssai lecture, ITestOutputHelper sortie)
         {
+            this.lecture = lecture;
             this.sortie = sortie;
         }
 
@@ -38,23 +52,14 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Theory]
         [InlineData(SensDeLecture.DroiteAGauche)]
         [InlineData(SensDeLecture.GaucheADroite)]
-        public async Task Ordonner_ApresUneLecture_DonneUnRangUniqueAChaqueBloc(
-            SensDeLecture sens)
+        public void Ordonner_ApresUneLecture_DonneUnRangUniqueAChaqueBloc(SensDeLecture sens)
         {
-            Planche planche = new Planche(await PlancheDEssai.ChargerAsync(), sens);
-
-            Planche lue;
-
-            using (ILecteurDePlanche lecteur =
-                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele()))
-            {
-                lue = await lecteur.LireAsync(planche);
-            }
+            Planche lue = lecture.Copier(sens);
 
             // Le sens de lecture vient de la planche, pas d'un réglage de
             // l'ordonnanceur : la même instance traite les deux sens.
-            IReadOnlyList<ZoneDeTexte> ordre =
-                new OrdonnanceurParCoupeRecursive().Ordonner(lue).Zones;
+            Planche ordonnee = new OrdonnanceurParCoupeRecursive().Ordonner(lue);
+            IReadOnlyList<ZoneDeTexte> ordre = ordonnee.Zones;
 
             Assert.Equal(lue.Zones.Count, ordre.Count);
 
@@ -63,6 +68,8 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
                 Enumerable.Range(0, ordre.Count),
                 ordre.Select(bloc => bloc.OrdreDeLecture!.Value));
 
+            ApercuDePlanche.Attacher($"apercu-ordre-{sens}", ordonnee);
+
             Decrire(sens, ordre);
         }
 
@@ -70,6 +77,8 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         {
             sortie.WriteLine($"Planche : {PlancheDEssai.Nom}");
             sortie.WriteLine($"Sens    : {sens}");
+            sortie.WriteLine(string.Empty);
+            sortie.WriteLine("Aperçu attaché : le chemin magenta suit l'ordre de bloc en bloc.");
             sortie.WriteLine(string.Empty);
 
             foreach (ZoneDeTexte bloc in ordre)
