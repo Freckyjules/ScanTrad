@@ -1,178 +1,214 @@
-using ScanTrad.Pipeline.Abstractions;
-using ScanTrad.Pipeline.Lecture;
+using OpenCvSharp;
 using ScanTrad.Pipeline.Models;
-using Xunit.Abstractions;
 
 namespace ScanTrad.PipelineTests.Lecture
 {
     /// <summary>
-    /// Fait tourner les vrais lecteurs sur une vraie planche.
+    /// Vérifie ce que la lecture d'une vraie planche produit.
     /// </summary>
     /// <remarks>
-    /// Le contrat de <see cref="ILecteurDePlanche"/> est vérifié une seule fois, rejoué
-    /// sur chaque implémentation : une nouvelle n'a qu'à s'ajouter à
-    /// <see cref="LesLecteurs"/> pour être contrôlée comme les autres.
+    /// La lecture se fait en trois temps : le modèle manga situe les blocs de
+    /// dialogue, chaque bloc est découpé et lu à pleine résolution, et le contour de
+    /// sa bulle est reconstruit par diffusion.
     /// <para>
-    /// Ces tests sont lents — ils chargent des modèles et lisent une image entière —
-    /// et s'écartent des exécutions courantes avec
-    /// <c>dotnet test --filter "Categorie!=Integration"</c>. Le lecteur
-    /// comic-text-detector demande en plus le fichier
-    /// <c>backend/modeles/comictextdetector.onnx</c>, qui n'est pas versionné.
+    /// La planche n'est lue qu'une fois pour toute la classe, via
+    /// <see cref="LectureDeLaPlancheDEssai"/> : charger le modèle et analyser l'image
+    /// coûte une vingtaine de secondes.
     /// </para>
     /// <para>
-    /// Rien ici ne vérifie <em>ce que</em> les moteurs ont lu : figer le résultat d'un
+    /// Rien ici ne vérifie <em>ce que</em> le moteur a lu : figer le résultat d'un
     /// modèle qu'on ne maîtrise pas ferait casser le test à chaque montée de version.
     /// On vérifie que la sortie est exploitable par la suite du pipeline.
     /// </para>
     /// </remarks>
     [Trait("Categorie", "Integration")]
     [Collection(CollectionDIntegration.Nom)]
-    public class LectureDePlancheTests
+    public class LectureDePlancheTests : IClassFixture<LectureDeLaPlancheDEssai>
     {
-        private const string LecteurPaddleOcr = "PaddleOCR";
-        private const string LecteurComicTextDetector = "ComicTextDetector";
-
+        private readonly LectureDeLaPlancheDEssai lecture;
         private readonly ITestOutputHelper sortie;
 
         /// <summary>
-        /// Initialise le test avec le collecteur de sortie fourni par xUnit.
+        /// Initialise le test avec la lecture partagée et le collecteur de sortie.
         /// </summary>
+        /// <param name="lecture">La planche d'essai, déjà lue.</param>
         /// <param name="sortie">Le canal où écrire ce qu'on veut voir apparaître.</param>
-        public LectureDePlancheTests(ITestOutputHelper sortie)
+        public LectureDePlancheTests(LectureDeLaPlancheDEssai lecture, ITestOutputHelper sortie)
         {
+            this.lecture = lecture;
             this.sortie = sortie;
         }
 
         /// <summary>
-        /// Les implémentations à confronter au contrat commun.
-        /// </summary>
-        public static TheoryData<string> LesLecteurs
-        {
-            get
-            {
-                return new TheoryData<string>
-                {
-                    LecteurPaddleOcr,
-                    LecteurComicTextDetector
-                };
-            }
-        }
-
-        /// <summary>
-        /// Quel que soit le moteur, une lecture rend des zones exploitables : une
-        /// géométrie non dégénérée, un texte non vide, une confiance dans les bornes —
-        /// et rien qui relève des étapes suivantes.
-        /// </summary>
-        /// <param name="nomDuLecteur">L'implémentation à mettre à l'épreuve.</param>
-        [Theory]
-        [MemberData(nameof(LesLecteurs))]
-        public async Task LireAsync_SurUnePlancheReelle_RespecteLeContrat(string nomDuLecteur)
-        {
-            Planche planche = new Planche(await PlancheDEssai.ChargerAsync());
-
-            using ILecteurDePlanche lecteur = ConstruireLeLecteur(nomDuLecteur);
-
-            IReadOnlyList<ZoneDeTexte> zones = (await lecteur.LireAsync(planche)).Zones;
-
-            Assert.NotNull(zones);
-            Assert.NotEmpty(zones);
-
-            foreach (ZoneDeTexte zone in zones)
-            {
-                VerifierQueLaZoneEstExploitable(zone);
-            }
-
-            Decrire(nomDuLecteur, zones);
-        }
-
-        /// <summary>
-        /// Ce que comic-text-detector apporte et que PaddleOCR seul ne sait pas
-        /// faire : retrouver le contour des bulles. N'a donc pas sa place dans le
-        /// contrat commun.
+        /// La lecture rend des zones exploitables : une géométrie non dégénérée, un
+        /// texte non vide, une confiance dans les bornes — et rien qui relève des
+        /// étapes suivantes.
         /// </summary>
         [Fact]
-        public async Task LireAsync_AvecComicTextDetector_RetrouveDesBulles()
+        public void Lecture_RespecteLeContrat()
         {
-            Planche planche = new Planche(await PlancheDEssai.ChargerAsync());
+            Assert.NotEmpty(lecture.Zones);
 
-            using LecteurDePlancheComicTextDetector lecteur =
-                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele());
+            foreach (ZoneDeTexte zone in lecture.Zones)
+            {
+                // Ce que la lecture doit avoir rempli.
+                Assert.NotNull(zone.Rectangle);
+                Assert.False(string.IsNullOrWhiteSpace(zone.TexteOriginal));
+                Assert.InRange(zone.Confiance, 0, 1);
 
-            IReadOnlyList<ZoneDeTexte> zones = (await ((ILecteurDePlanche)lecteur).LireAsync(planche)).Zones;
+                // Une géométrie plate ne serait exploitable ni pour effacer ni pour
+                // réécrire.
+                Assert.True(zone.Rectangle.Largeur > 0, "La zone a une largeur nulle.");
+                Assert.True(zone.Rectangle.Hauteur > 0, "La zone a une hauteur nulle.");
 
-            int avecBulle = zones.Count(zone => zone.Bulle != null);
+                // Ce que la lecture ne doit surtout pas avoir rempli : sinon une
+                // responsabilité a glissé dans le lecteur.
+                Assert.Null(zone.TexteTraduit);
+                Assert.Null(zone.OrdreDeLecture);
+            }
 
-            Assert.True(avecBulle > 0, "Aucune bulle retrouvée sur une planche qui en est pleine.");
+            Decrire();
+        }
 
-            foreach (ZoneDeTexte zone in zones.Where(zone => zone.Bulle != null))
+        /// <summary>
+        /// Le modèle rend des blocs entiers et non des lignes.
+        /// </summary>
+        /// <remarks>
+        /// Le nombre de mots par zone le dit mieux qu'un nombre de zones : une lecture
+        /// ligne par ligne donne un ou deux mots par zone, une lecture par blocs en
+        /// donne une phrase. Le critère ne dépend donc pas du nombre de bulles que
+        /// porte la planche.
+        /// </remarks>
+        [Fact]
+        public void Lecture_RendDesBlocsEtNonDesLignes()
+        {
+            double motsParZone = lecture.Zones.Average(
+                zone => zone.TexteOriginal.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+
+            Assert.True(
+                motsParZone >= 3,
+                $"{motsParZone:0.0} mots par zone : la lecture semble être retombée sur des lignes.");
+        }
+
+        /// <summary>
+        /// Le contour des bulles est reconstruit pour la plupart des blocs.
+        /// </summary>
+        /// <remarks>
+        /// On exige une majorité plutôt qu'un chiffre exact : un compte figé casserait
+        /// à la moindre montée de version du modèle, alors qu'un simple « au moins
+        /// une » laisserait passer une régression qui n'en trouverait plus qu'une.
+        /// </remarks>
+        [Fact]
+        public void Lecture_RetrouveLaPlupartDesBulles()
+        {
+            int avecBulle = lecture.Zones.Count(zone => zone.Bulle != null);
+
+            Assert.True(
+                avecBulle * 2 >= lecture.Zones.Count,
+                $"{avecBulle} bulles sur {lecture.Zones.Count} blocs : trop peu.");
+
+            foreach (ZoneDeTexte zone in lecture.Zones.Where(zone => zone.Bulle != null))
             {
                 Assert.True(zone.Bulle!.Contour.Count >= 3);
             }
 
-            sortie.WriteLine($"{avecBulle} bulles retrouvées sur {zones.Count} zones.");
-            sortie.WriteLine(string.Empty);
-
-            foreach (ZoneDeTexte zone in zones)
-            {
-                string bulle = zone.Bulle == null
-                    ? "sans bulle"
-                    : $"{zone.Bulle.Contour.Count} pts centrés en {zone.Bulle.Centre}";
-
-                sortie.WriteLine($"[{zone.Confiance:0.00}] {zone.TexteOriginal,-32} | {bulle}");
-            }
+            sortie.WriteLine($"{avecBulle} bulles retrouvées sur {lecture.Zones.Count} blocs.");
         }
 
-        private static ILecteurDePlanche ConstruireLeLecteur(string nom)
+        /// <summary>
+        /// Attache au test une image de ce que la lecture a détecté, visible
+        /// directement dans l'explorateur de tests.
+        /// </summary>
+        /// <remarks>
+        /// Ce test ne vérifie rien et ne doit jamais échouer : il n'y a pas d'égalité à
+        /// contrôler sur une détection. Son produit est l'aperçu, qui permet de voir
+        /// d'un coup d'œil ce qui a été trouvé sans quitter Visual Studio — et
+        /// notamment de comprendre pourquoi l'un des trois autres tests est tombé.
+        /// </remarks>
+        [Fact]
+        public void Lecture_AttacheUnApercuDeLaDetection()
         {
-            switch (nom)
-            {
-                case LecteurPaddleOcr:
-                    return new LecteurDePlanchePaddleOcr();
+            TestContext.Current.AddAttachment(
+                "apercu-detection", DessinerLApercu(), "image/png");
 
-                case LecteurComicTextDetector:
-                    return new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele());
-
-                default:
-                    throw new ArgumentException($"Lecteur inconnu : {nom}", nameof(nom));
-            }
+            sortie.WriteLine("Aperçu attaché : vert = quadrilatère du texte, rouge = contour de la bulle.");
         }
 
-        private static void VerifierQueLaZoneEstExploitable(ZoneDeTexte zone)
+        private byte[] DessinerLApercu()
         {
-            // Ce que l'étape de lecture doit avoir rempli.
-            Assert.NotNull(zone.Quadrilatere);
-            Assert.False(string.IsNullOrWhiteSpace(zone.TexteOriginal));
-            Assert.InRange(zone.Confiance, 0, 1);
+            using Mat dessin = Cv2.ImDecode(lecture.Originale.Image, ImreadModes.Color);
 
-            // Une géométrie plate ne serait exploitable ni pour effacer ni pour réécrire.
-            Assert.True(zone.Quadrilatere.Largeur > 0, "La zone a une largeur nulle.");
-            Assert.True(zone.Quadrilatere.Hauteur > 0, "La zone a une hauteur nulle.");
-
-            // Ce que l'étape de lecture ne doit surtout pas avoir rempli : sinon une
-            // responsabilité a glissé dans le lecteur.
-            Assert.Null(zone.TexteTraduit);
-            Assert.Null(zone.OrdreDeLecture);
-
-            // La bulle a le droit d'être absente : tous les moteurs ne savent pas la
-            // détecter, et un texte hors bulle n'en a pas.
-            if (zone.Bulle != null)
+            for (int rang = 0; rang < lecture.Zones.Count; rang++)
             {
-                Assert.True(zone.Bulle.Contour.Count >= 3);
+                ZoneDeTexte zone = lecture.Zones[rang];
+
+                DessinerLaBulle(dessin, zone.Bulle);
+                DessinerLeQuadrilatere(dessin, zone.Rectangle);
+                DessinerLeRang(dessin, zone.Rectangle, rang);
             }
+
+            return dessin.ImEncode(".png");
         }
 
-        private void Decrire(string nomDuLecteur, IReadOnlyList<ZoneDeTexte> zones)
+        private static void DessinerLaBulle(Mat dessin, Bulle? bulle)
         {
-            sortie.WriteLine($"Lecteur       : {nomDuLecteur}");
+            if (bulle == null || bulle.Contour.Count < 3)
+            {
+                return;
+            }
+
+            Point[] contour = bulle.Contour.Select(Vers).ToArray();
+
+            Cv2.Polylines(dessin, new[] { contour }, isClosed: true, new Scalar(0, 0, 255), 5);
+        }
+
+        private static void DessinerLeQuadrilatere(Mat dessin, Quadrilatere quadrilatere)
+        {
+            Point[] coins =
+            {
+                Vers(quadrilatere.HautGauche),
+                Vers(quadrilatere.HautDroit),
+                Vers(quadrilatere.BasDroit),
+                Vers(quadrilatere.BasGauche)
+            };
+
+            Cv2.Polylines(dessin, new[] { coins }, isClosed: true, new Scalar(0, 200, 0), 4);
+        }
+
+        private static void DessinerLeRang(Mat dessin, Quadrilatere quadrilatere, int rang)
+        {
+            Point ancre = Vers(quadrilatere.HautGauche);
+
+            Cv2.PutText(
+                dessin,
+                rang.ToString(),
+                new Point(ancre.X, Math.Max(40, ancre.Y - 14)),
+                HersheyFonts.HersheySimplex,
+                1.4,
+                new Scalar(255, 60, 0),
+                4);
+        }
+
+        private static Point Vers(Coordonnee point)
+        {
+            return new Point((int)Math.Round(point.X), (int)Math.Round(point.Y));
+        }
+
+        private void Decrire()
+        {
             sortie.WriteLine($"Planche       : {PlancheDEssai.Nom}");
-            sortie.WriteLine($"Zones lues    : {zones.Count}");
-            sortie.WriteLine($"Avec bulle    : {zones.Count(zone => zone.Bulle != null)} sur {zones.Count}");
-            sortie.WriteLine($"Confiance moy.: {zones.Average(zone => zone.Confiance):0.###}");
+            sortie.WriteLine($"Blocs lus     : {lecture.Zones.Count}");
+            sortie.WriteLine($"Avec bulle    : {lecture.Zones.Count(zone => zone.Bulle != null)} sur {lecture.Zones.Count}");
+            sortie.WriteLine($"Confiance moy.: {lecture.Zones.Average(zone => zone.Confiance):0.###}");
             sortie.WriteLine(string.Empty);
 
-            foreach (ZoneDeTexte zone in zones)
+            foreach (ZoneDeTexte zone in lecture.Zones)
             {
-                sortie.WriteLine($"[{zone.Confiance:0.00}] {zone.TexteOriginal}");
+                string bulle = zone.Bulle == null ? "sans bulle" : $"{zone.Bulle.Contour.Count} pts";
+                string ligne = zone.HauteurDeLigne == null ? "?" : $"{zone.HauteurDeLigne.Value:0} px";
+
+                sortie.WriteLine(
+                    $"[{zone.Confiance:0.00}] ({bulle,9}) {zone.Angle,6:0.0}° ligne {ligne,6}  {zone.TexteOriginal}");
             }
         }
     }
