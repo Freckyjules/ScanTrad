@@ -1,5 +1,3 @@
-using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
 using ScanTrad.Pipeline.Abstractions;
 using ScanTrad.Pipeline.Models;
@@ -9,27 +7,29 @@ using Sdcb.PaddleOCR.Models.Local;
 namespace ScanTrad.Pipeline.Lecture
 {
     /// <summary>
-    /// Lit une planche en combinant trois outils locaux : le modèle ONNX
-    /// comic-text-detector pour situer les lignes, PaddleOCR pour les lire, et
-    /// OpenCV pour retrouver le contour de la bulle qui entoure chaque ligne.
+    /// Lit une planche en combinant trois outils locaux : comic-text-detector pour
+    /// situer les blocs de dialogue, PaddleOCR pour les lire, et OpenCV pour
+    /// retrouver le contour des bulles.
     /// </summary>
     /// <remarks>
-    /// comic-text-detector est entraîné sur des planches de manga, là où PaddleOCR
-    /// est généraliste. Il repère mieux le texte de dialogue, mais il ne sait pas
-    /// le lire — d'où la combinaison. C'est un détail d'implémentation : de
-    /// l'extérieur, cette classe honore le même contrat que n'importe quel autre
-    /// lecteur.
+    /// Le modèle manga donne des <b>blocs</b>, déjà groupés par bulle et débarrassés
+    /// des onomatopées. Chaque bloc est découpé dans la planche et lu séparément, ce
+    /// qui a deux conséquences mesurées :
+    /// <list type="bullet">
+    /// <item>il n'y a plus rien à regrouper, donc plus de seuils géométriques à
+    /// régler ni de cas tordus à rattraper ;</item>
+    /// <item>la reconnaissance travaille sur une découpe de deux à trois cents
+    /// pixels, donc à pleine résolution, au lieu de la planche entière réduite. Sur
+    /// une planche d'essai, les erreurs sont passées d'une dizaine à quatre.</item>
+    /// </list>
     /// <para>
-    /// Le modèle ne fournit <em>pas</em> le contour des bulles, contrairement à ce
-    /// qu'on lit souvent. Il sort une carte des lignes de texte, un masque de
-    /// l'encre des lettres et des boîtes de blocs. Le contour de bulle est donc
-    /// reconstruit ici par remplissage par diffusion : on part du texte, on
-    /// progresse dans les pixels clairs, et on s'arrête sur le trait du contour.
+    /// La boîte du bloc sert directement de quadrilatère : on ne cherche pas à
+    /// remonter les coordonnées des lignes trouvées dans la découpe.
     /// </para>
     /// <para>
-    /// La sortie reste brute : une zone par ligne détectée. Deux lignes d'une même
-    /// bulle porteront donc chacune la même bulle, et ce n'est pas un défaut —
-    /// regrouper n'est pas le travail d'un lecteur.
+    /// Le prix de cette approche est un échange précision contre rappel : ce que le
+    /// modèle rate est définitivement perdu, là où une détection ligne par ligne
+    /// ramasse tout, bruit compris.
     /// </para>
     /// </remarks>
     public class LecteurDePlancheComicTextDetector : ILecteurDePlanche
@@ -37,27 +37,17 @@ namespace ScanTrad.Pipeline.Lecture
         #region Constantes
 
         /// <summary>
-        /// Côté de l'image carrée qu'attend le modèle, en pixels.
+        /// Marge ajoutée autour d'un bloc avant de le découper. La boîte du modèle
+        /// colle au texte, et sans marge le dernier caractère se fait rogner.
         /// </summary>
-        private const int CoteAttenduParLeModele = 1024;
-
-        /// <summary>
-        /// Au-dessus de cette valeur, un pixel de la carte des lignes est considéré
-        /// comme appartenant à une ligne de texte.
-        /// </summary>
-        private const float SeuilDeLaCarteDesLignes = 0.4f;
-
-        /// <summary>
-        /// Une ligne plus petite que ça, dans le repère du modèle, est du bruit.
-        /// </summary>
-        private const int CoteMinimalDuneLigne = 6;
+        private const int MargeDeDecoupe = 12;
 
         #endregion
 
         #region Attributs
 
-        private InferenceSession detecteur;
-        private PaddleOcrRecognizer lecteur;
+        private DetecteurDeBlocs detecteur;
+        private PaddleOcrAll moteurDeLecture;
         private double confianceMinimale;
         private bool libere;
 
@@ -70,8 +60,7 @@ namespace ScanTrad.Pipeline.Lecture
         /// confiance courant.
         /// </summary>
         /// <param name="cheminDuModele">
-        /// Chemin du fichier <c>comictextdetector.onnx</c>. Il pèse une centaine de
-        /// mégaoctets et n'est pas versionné : il se télécharge à part.
+        /// Chemin du fichier <c>comictextdetector.onnx</c>.
         /// </param>
         /// <exception cref="ArgumentException">
         /// Levée si <paramref name="cheminDuModele"/> est vide.
@@ -85,14 +74,13 @@ namespace ScanTrad.Pipeline.Lecture
         }
 
         /// <summary>
-        /// Initialise un lecteur à partir du fichier du modèle, avec un seuil de
-        /// confiance choisi.
+        /// Initialise un lecteur avec un seuil de confiance choisi.
         /// </summary>
         /// <param name="cheminDuModele">
         /// Chemin du fichier <c>comictextdetector.onnx</c>.
         /// </param>
         /// <param name="confianceMinimale">
-        /// En dessous de ce seuil, une ligne lue est jetée sans être remontée.
+        /// En dessous de ce seuil, un bloc lu est jeté sans être remonté.
         /// </param>
         /// <exception cref="ArgumentException">
         /// Levée si <paramref name="cheminDuModele"/> est vide.
@@ -105,27 +93,28 @@ namespace ScanTrad.Pipeline.Lecture
         /// </exception>
         public LecteurDePlancheComicTextDetector(string cheminDuModele, double confianceMinimale)
         {
-            if (string.IsNullOrWhiteSpace(cheminDuModele))
-            {
-                throw new ArgumentException("Le chemin du modèle est obligatoire.", nameof(cheminDuModele));
-            }
-
             if (confianceMinimale < 0 || confianceMinimale > 1)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(confianceMinimale), "Le seuil de confiance se situe entre 0 et 1.");
             }
 
-            if (!File.Exists(cheminDuModele))
-            {
-                throw new FileNotFoundException(
-                    "Le modèle comic-text-detector est introuvable.", cheminDuModele);
-            }
-
             this.confianceMinimale = confianceMinimale;
             this.libere = false;
-            this.detecteur = new InferenceSession(cheminDuModele);
-            this.lecteur = new PaddleOcrRecognizer(LocalRecognizationModel.EnglishV5);
+            this.detecteur = new DetecteurDeBlocs(cheminDuModele);
+
+            this.moteurDeLecture = new PaddleOcrAll(LocalFullModels.EnglishV5)
+            {
+                // Le détecteur de PaddleOCR exprime beaucoup de lignes horizontales
+                // comme des rectangles pivotés d'un quart de tour. Le laisser
+                // redresser ses découpes sur cette base lui fait lire du texte
+                // couché : « MAGIC ACADEMY » ressortait en « WAMIC ACADEAA ».
+                AllowRotateDetection = false,
+
+                // Le classifieur d'orientation à 180° fait planter le moteur natif.
+                // Une planche de manga n'est de toute façon pas à l'envers.
+                Enable180Classification = false
+            };
         }
 
         #endregion
@@ -133,7 +122,7 @@ namespace ScanTrad.Pipeline.Lecture
         #region Propriétés
 
         /// <summary>
-        /// Seuil en dessous duquel une ligne lue est jetée, entre 0 et 1.
+        /// Seuil en dessous duquel un bloc lu est jeté, entre 0 et 1.
         /// </summary>
         public double ConfianceMinimale
         {
@@ -164,7 +153,7 @@ namespace ScanTrad.Pipeline.Lecture
         }
 
         /// <summary>
-        /// Libère le modèle ONNX et le moteur de lecture retenus en mémoire.
+        /// Libère le modèle de détection et le moteur de lecture retenus en mémoire.
         /// </summary>
         public void Dispose()
         {
@@ -174,7 +163,7 @@ namespace ScanTrad.Pipeline.Lecture
             }
 
             detecteur.Dispose();
-            lecteur.Dispose();
+            moteurDeLecture.Dispose();
             libere = true;
 
             GC.SuppressFinalize(this);
@@ -196,279 +185,121 @@ namespace ScanTrad.Pipeline.Lecture
                     "Les octets fournis ne forment pas une image décodable.", nameof(image));
             }
 
-            using Mat carteDesLignes = DetecterLesLignes(planche);
+            IReadOnlyList<Rect> blocs = detecteur.Detecter(planche);
 
             jetonAnnulation.ThrowIfCancellationRequested();
 
-            List<Rect> boites = ExtraireLesBoites(carteDesLignes, planche.Size());
-
-            if (boites.Count == 0)
-            {
-                return new List<ZoneDeTexte>();
-            }
-
-            PaddleOcrRecognizerResult[] textes = LireLesBoites(planche, boites);
-
-            jetonAnnulation.ThrowIfCancellationRequested();
+            using Mat gris = new Mat();
+            Cv2.CvtColor(planche, gris, ColorConversionCodes.BGR2GRAY);
 
             List<ZoneDeTexte> zones = new List<ZoneDeTexte>();
 
-            for (int i = 0; i < boites.Count; i++)
+            foreach (Rect bloc in blocs)
             {
-                if (string.IsNullOrWhiteSpace(textes[i].Text) || textes[i].Score < confianceMinimale)
+                jetonAnnulation.ThrowIfCancellationRequested();
+
+                ZoneDeTexte? zone = ConstruireLaZone(planche, gris, bloc);
+
+                if (zone != null)
                 {
-                    continue;
+                    zones.Add(zone);
                 }
-
-                ZoneDeTexte zone = new ZoneDeTexte();
-
-                zone.Quadrilatere = Quadrilatere.DepuisRectangle(
-                    boites[i].X, boites[i].Y, boites[i].Width, boites[i].Height);
-                zone.TexteOriginal = textes[i].Text.Trim();
-                zone.Confiance = textes[i].Score;
-                zone.Bulle = TrouverLaBulle(planche, boites[i]);
-
-                zones.Add(zone);
             }
 
             return zones;
         }
 
-        private Mat DetecterLesLignes(Mat planche)
+        private ZoneDeTexte? ConstruireLaZone(Mat planche, Mat gris, Rect bloc)
         {
-            using Mat carre = new Mat();
-            Cv2.Resize(planche, carre, new Size(CoteAttenduParLeModele, CoteAttenduParLeModele));
-            Cv2.CvtColor(carre, carre, ColorConversionCodes.BGR2RGB);
+            Rect decoupe = Elargir(bloc, planche.Size(), MargeDeDecoupe);
 
-            DenseTensor<float> entree = new DenseTensor<float>(
-                new[] { 1, 3, CoteAttenduParLeModele, CoteAttenduParLeModele });
+            using Mat morceau = new Mat(planche, decoupe);
 
-            for (int y = 0; y < CoteAttenduParLeModele; y++)
-            {
-                for (int x = 0; x < CoteAttenduParLeModele; x++)
-                {
-                    Vec3b pixel = carre.At<Vec3b>(y, x);
+            PaddleOcrResult resultat = moteurDeLecture.Run(morceau);
 
-                    entree[0, 0, y, x] = pixel.Item0 / 255f;
-                    entree[0, 1, y, x] = pixel.Item1 / 255f;
-                    entree[0, 2, y, x] = pixel.Item2 / 255f;
-                }
-            }
+            PaddleOcrResultRegion[] lignes = resultat.Regions
+                .Where(region => !string.IsNullOrWhiteSpace(region.Text))
+                .OrderBy(region => region.Rect.Center.Y)
+                .ThenBy(region => region.Rect.Center.X)
+                .ToArray();
 
-            using IDisposableReadOnlyCollection<DisposableNamedOnnxValue> resultat =
-                detecteur.Run(new[] { NamedOnnxValue.CreateFromTensor("images", entree) });
-
-            // « det » porte deux canaux ; le premier est la carte des lignes de texte,
-            // une barre allumée par ligne. C'est de là que viennent nos boîtes.
-            Tensor<float> det = resultat.First(sortie => sortie.Name == "det").AsTensor<float>();
-
-            Mat carte = new Mat(CoteAttenduParLeModele, CoteAttenduParLeModele, MatType.CV_8UC1);
-
-            for (int y = 0; y < CoteAttenduParLeModele; y++)
-            {
-                for (int x = 0; x < CoteAttenduParLeModele; x++)
-                {
-                    carte.Set<byte>(y, x, det[0, 0, y, x] > SeuilDeLaCarteDesLignes ? (byte)255 : (byte)0);
-                }
-            }
-
-            return carte;
-        }
-
-        private static List<Rect> ExtraireLesBoites(Mat carteDesLignes, Size tailleReelle)
-        {
-            Cv2.FindContours(
-                carteDesLignes,
-                out Point[][] contours,
-                out _,
-                RetrievalModes.External,
-                ContourApproximationModes.ApproxSimple);
-
-            double facteurX = (double)tailleReelle.Width / CoteAttenduParLeModele;
-            double facteurY = (double)tailleReelle.Height / CoteAttenduParLeModele;
-
-            List<Rect> boites = new List<Rect>();
-
-            foreach (Point[] contour in contours)
-            {
-                Rect boite = Cv2.BoundingRect(contour);
-
-                if (boite.Width < CoteMinimalDuneLigne || boite.Height < CoteMinimalDuneLigne / 2)
-                {
-                    continue;
-                }
-
-                boites.Add(new Rect(
-                    (int)(boite.X * facteurX),
-                    (int)(boite.Y * facteurY),
-                    (int)(boite.Width * facteurX),
-                    (int)(boite.Height * facteurY)));
-            }
-
-            // De haut en bas, pour que la sortie soit au moins lisible. Ce n'est pas
-            // l'ordre de lecture d'un manga : ce calcul-là ne nous appartient pas.
-            return boites.OrderBy(boite => boite.Y).ThenBy(boite => boite.X).ToList();
-        }
-
-        private PaddleOcrRecognizerResult[] LireLesBoites(Mat planche, List<Rect> boites)
-        {
-            Mat[] decoupes = new Mat[boites.Count];
-
-            try
-            {
-                for (int i = 0; i < boites.Count; i++)
-                {
-                    // La carte des lignes du modèle est plus étroite que le texte
-                    // réel : sans marge, le dernier caractère est rogné et « MAGIC
-                    // ACADEMY » ressort en « WAGIC ACADEM ». La marge suit la hauteur
-                    // de la ligne, pour rester juste quelle que soit la taille.
-                    int marge = Math.Max(6, boites[i].Height / 4);
-
-                    decoupes[i] = new Mat(planche, Elargir(boites[i], planche.Size(), marge));
-                }
-
-                // Une seule passe pour toutes les découpes : le moteur les traite par
-                // paquets, ce qui est nettement plus rapide qu'un appel par ligne.
-                return lecteur.Run(decoupes, 0);
-            }
-            finally
-            {
-                foreach (Mat decoupe in decoupes)
-                {
-                    decoupe?.Dispose();
-                }
-            }
-        }
-
-        private static Bulle? TrouverLaBulle(Mat planche, Rect boiteDuTexte)
-        {
-            using Mat gris = new Mat();
-            Cv2.CvtColor(planche, gris, ColorConversionCodes.BGR2GRAY);
-
-            Point? depart = ChercherUnPixelClairAutourDuTexte(gris, boiteDuTexte);
-
-            if (depart == null)
+            if (lignes.Length == 0)
             {
                 return null;
             }
 
-            // Le masque du remplissage doit déborder d'un pixel de chaque côté :
-            // c'est OpenCV qui l'impose, il s'en sert de garde-fou.
-            using Mat masque = new Mat(planche.Height + 2, planche.Width + 2, MatType.CV_8UC1, Scalar.All(0));
+            // Un bloc ne vaut que ce que vaut sa ligne la moins sûre.
+            double confiance = lignes.Min(ligne => ligne.Score);
 
-            FloodFillFlags drapeaux = FloodFillFlags.MaskOnly
-                | (FloodFillFlags)4
-                | (FloodFillFlags)(255 << 8);
-
-            Cv2.FloodFill(
-                gris,
-                masque,
-                depart.Value,
-                Scalar.All(255),
-                out Rect etendue,
-                Scalar.All(28),
-                Scalar.All(28),
-                drapeaux);
-
-            if (!LEtendueEstCredible(etendue, boiteDuTexte, planche.Size()))
+            if (confiance < confianceMinimale)
             {
                 return null;
             }
 
-            using Mat interieur = new Mat(masque, new Rect(1, 1, planche.Width, planche.Height));
+            ZoneDeTexte zone = new ZoneDeTexte();
 
-            Cv2.FindContours(
-                interieur,
-                out Point[][] contours,
-                out _,
-                RetrievalModes.External,
-                ContourApproximationModes.ApproxSimple);
+            zone.Rectangle = Quadrilatere.DepuisRectangle(bloc.X, bloc.Y, bloc.Width, bloc.Height);
 
-            if (contours.Length == 0)
-            {
-                return null;
-            }
+            // Le modèle rend un rectangle droit : l'inclinaison du texte ne s'y lit
+            // pas. Elle se mesure sur les boîtes des lignes, qui elles suivent le
+            // texte. Un angle étant invariant par translation, il n'y a pas besoin de
+            // ramener ces boîtes dans le repère de la planche.
+            Quadrilatere[] formesDesLignes = lignes
+                .Select(ligne => VersQuadrilatere(ligne.Rect))
+                .ToArray();
 
-            Point[] leplusGrand = contours.OrderByDescending(contour => Cv2.ContourArea(contour)).First();
+            zone.Angle = AngleMoyen(formesDesLignes);
+            zone.HauteurDeLigne = formesDesLignes.Average(forme => forme.Hauteur);
 
-            // Le contour brut compte des centaines de points collés. On le simplifie
-            // pour obtenir un polygone maniable, éditable à la souris depuis le front.
-            double tolerance = 0.004 * Cv2.ArcLength(leplusGrand, true);
-            Point[] simplifie = Cv2.ApproxPolyDP(leplusGrand, tolerance, true);
+            // Les lignes d'un bloc sont les morceaux d'une même phrase : on les
+            // recolle avec une espace, pas un retour à la ligne. Le rendu français
+            // recoupera lui-même, et pas au même endroit.
+            zone.TexteOriginal = string.Join(" ", lignes.Select(ligne => ligne.Text.Trim()));
+            zone.Confiance = confiance;
+            zone.Bulle = ChercheurDeBulle.Chercher(gris, bloc);
 
-            if (simplifie.Length < 3)
-            {
-                return null;
-            }
-
-            return new Bulle(simplifie.Select(point => new Coordonnee(point.X, point.Y)));
+            // Le texte traduit et l'ordre de lecture relèvent d'étapes ultérieures :
+            // le lecteur ne doit surtout pas y toucher.
+            return zone;
         }
 
-        private static Point? ChercherUnPixelClairAutourDuTexte(Mat gris, Rect boiteDuTexte)
+        private static Quadrilatere VersQuadrilatere(RotatedRect rectangle)
         {
-            // On cherche du blanc de bulle autour du texte sans tomber sur les lettres.
-            // Plusieurs distances sont tentées : au-dessus d'une ligne du milieu, une
-            // marge courte tombe dans l'interligne — qui est blanc — alors qu'une
-            // marge longue atteint la ligne précédente, qui ne l'est pas.
+            // On ne se fie pas à l'angle que porte le RotatedRect : le détecteur
+            // exprime souvent une ligne horizontale comme un rectangle pivoté d'un
+            // quart de tour, et 277x39 à 0° décrit la même chose que 39x277 à -90°.
+            // On replace donc les coins par position : les deux plus hauts forment le
+            // côté haut, et le plus à gauche de chaque paire vient en premier.
+            Point2f[] coins = rectangle.Points();
 
-            int[] marges =
-            {
-                Math.Max(2, boiteDuTexte.Height / 6),
-                Math.Max(4, boiteDuTexte.Height / 3),
-                Math.Max(6, boiteDuTexte.Height / 2)
-            };
+            Point2f[] parHauteur = coins.OrderBy(coin => coin.Y).ToArray();
+            Point2f[] haut = parHauteur.Take(2).OrderBy(coin => coin.X).ToArray();
+            Point2f[] bas = parHauteur.Skip(2).OrderBy(coin => coin.X).ToArray();
 
-            // Un seul point par direction est trop fragile : au-dessus d'un « Y », on
-            // tombe sur la lettre alors qu'il y a du blanc deux pixels à côté. On
-            // balaie donc la largeur et la hauteur de la boîte.
-            const int NombreDeSondes = 7;
-
-            foreach (int marge in marges)
-            {
-                for (int sonde = 1; sonde < NombreDeSondes; sonde++)
-                {
-                    int surLaLargeur = boiteDuTexte.X + (boiteDuTexte.Width * sonde / NombreDeSondes);
-                    int surLaHauteur = boiteDuTexte.Y + (boiteDuTexte.Height * sonde / NombreDeSondes);
-
-                    Point[] candidats =
-                    {
-                        new Point(surLaLargeur, boiteDuTexte.Y - marge),
-                        new Point(surLaLargeur, boiteDuTexte.Bottom + marge),
-                        new Point(boiteDuTexte.X - marge, surLaHauteur),
-                        new Point(boiteDuTexte.Right + marge, surLaHauteur)
-                    };
-
-                    foreach (Point candidat in candidats)
-                    {
-                        if (candidat.X < 0 || candidat.Y < 0 || candidat.X >= gris.Width || candidat.Y >= gris.Height)
-                        {
-                            continue;
-                        }
-
-                        if (gris.At<byte>(candidat.Y, candidat.X) >= 200)
-                        {
-                            return candidat;
-                        }
-                    }
-                }
-            }
-
-            return null;
+            return new Quadrilatere(
+                new Coordonnee(haut[0].X, haut[0].Y),
+                new Coordonnee(haut[1].X, haut[1].Y),
+                new Coordonnee(bas[1].X, bas[1].Y),
+                new Coordonnee(bas[0].X, bas[0].Y));
         }
 
-        private static bool LEtendueEstCredible(Rect etendue, Rect boiteDuTexte, Size taillePlanche)
+        private static double AngleMoyen(IReadOnlyList<Quadrilatere> formes)
         {
-            double airePlanche = (double)taillePlanche.Width * taillePlanche.Height;
-            double aireEtendue = (double)etendue.Width * etendue.Height;
+            // On additionne les directions plutôt que les angles : la moyenne
+            // arithmétique de 179° et -179° donnerait 0°, alors que la bonne réponse
+            // est 180°.
+            double sommeX = 0;
+            double sommeY = 0;
 
-            // Trop grand : le remplissage s'est échappé par une ouverture du contour
-            // et a envahi la planche. Trop petit : on n'a attrapé qu'un interligne.
-            if (aireEtendue > airePlanche * 0.25)
+            foreach (Quadrilatere forme in formes)
             {
-                return false;
+                double radians = forme.Angle * Math.PI / 180;
+
+                sommeX += Math.Cos(radians);
+                sommeY += Math.Sin(radians);
             }
 
-            return etendue.Width >= boiteDuTexte.Width && etendue.Height >= boiteDuTexte.Height;
+            return Math.Atan2(sommeY, sommeX) * 180 / Math.PI;
         }
 
         private static Rect Elargir(Rect boite, Size limites, int marge)
