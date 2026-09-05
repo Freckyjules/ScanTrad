@@ -112,8 +112,8 @@ namespace ScanTrad.Pipeline.Models
         /// <remarks>
         /// Mesurée à la lecture, sur les pixels que la diffusion a parcourus — donc
         /// sur le fond seul, l'encre des lettres ayant arrêté la diffusion. Elle est
-        /// stockée parce qu'elle ne se retrouve pas ensuite : le contour rendu est un
-        /// polygone simplifié, et le détail des pixels d'origine est perdu.
+        /// stockée parce qu'elle ne se retrouve pas ensuite : ce qui survit est un
+        /// contour, et non l'ensemble des pixels que la diffusion avait retenus.
         /// <para>
         /// Une bulle blanche donne rarement 255 : les scans tirent vers le crème ou le
         /// gris, et c'est justement l'écart que cette mesure rattrape.

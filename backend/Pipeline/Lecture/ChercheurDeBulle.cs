@@ -70,8 +70,8 @@ namespace ScanTrad.Pipeline.Lecture
         /// </summary>
         /// <remarks>
         /// Les deux vont ensemble parce que la couleur se mesure sur le masque de la
-        /// diffusion, qui n'existe qu'ici : ce qui ressort est un polygone simplifié,
-        /// et le détail des pixels est perdu ensuite.
+        /// diffusion, qui n'existe qu'ici : ce qui ressort est un contour, et les
+        /// pixels qu'il enferme sont perdus ensuite.
         /// </remarks>
         /// <param name="gris">La planche en niveaux de gris, où se fait la diffusion.</param>
         /// <param name="couleur">
@@ -338,12 +338,18 @@ namespace ScanTrad.Pipeline.Lecture
 
             aire = Math.Abs(Cv2.ContourArea(leplusGrand));
 
-            // Le contour brut compte des centaines de points collés. On le simplifie
-            // pour obtenir un polygone maniable, éditable à la souris depuis le front.
-            double toleranceDuTrace = 0.004 * Cv2.ArcLength(leplusGrand, true);
-            Point[] simplifie = Cv2.ApproxPolyDP(leplusGrand, toleranceDuTrace, true);
-
-            return simplifie.Length >= 3 ? simplifie : null;
+            // Le contour est rendu tel quel, sans le simplifier. Un polygone simplifié
+            // coupe les virages en ligne droite, et sur une bulle ces raccourcis
+            // passent à travers son trait : l'effacement mordait alors dessus. Mesuré
+            // sur la planche d'essai, la clarté moyenne du bord tombait à 127-165 sur
+            // quatre bulles sur huit ; sans simplification, les huit sont à 251-253,
+            // c'est-à-dire franchement sur le papier.
+            //
+            // Le contour coûte alors 500 à 850 points au lieu d'une quarantaine, ce
+            // qui ne se voit ni au chronomètre — la lecture est dominée par l'OCR — ni
+            // en mémoire. La simplification n'existait que pour rendre le polygone
+            // maniable à la souris ; personne ne l'édite.
+            return leplusGrand.Length >= 3 ? leplusGrand : null;
         }
 
         private static bool CouvreLeBloc(Point[]? contour, Rect bloc)
