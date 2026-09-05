@@ -173,16 +173,16 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
             // lecture. C'est le seul endroit où une comparaison deux à deux a un sens,
             // parce qu'il n'y a plus de structure à respecter.
             IOrderedEnumerable<ZoneDeTexte> parHauteur = region
-                .OrderBy(zone => zone.Quadrilatere.Centre.Y);
+                .OrderBy(zone => zone.Rectangle.Centre.Y);
 
             return sens == SensDeLecture.DroiteAGauche
-                ? parHauteur.ThenByDescending(zone => zone.Quadrilatere.Centre.X).ToList()
-                : parHauteur.ThenBy(zone => zone.Quadrilatere.Centre.X).ToList();
+                ? parHauteur.ThenByDescending(zone => zone.Rectangle.Centre.X).ToList()
+                : parHauteur.ThenBy(zone => zone.Rectangle.Centre.X).ToList();
         }
 
         private static double HauteurMoyenne(List<ZoneDeTexte> region)
         {
-            double moyenne = region.Average(zone => zone.Quadrilatere.Hauteur);
+            double moyenne = region.Average(zone => zone.Rectangle.Hauteur);
 
             // Une région de zones dégénérées ne doit pas ramener une gouttière nulle,
             // qui ferait couper au moindre pixel d'écart.
@@ -191,7 +191,7 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
 
         private static double Debut(ZoneDeTexte zone, bool verticalement)
         {
-            Quadrilatere quad = zone.Quadrilatere;
+            Quadrilatere quad = zone.Rectangle;
 
             return verticalement
                 ? Math.Min(quad.HautGauche.X, quad.BasGauche.X)
@@ -200,7 +200,7 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
 
         private static double Fin(ZoneDeTexte zone, bool verticalement)
         {
-            Quadrilatere quad = zone.Quadrilatere;
+            Quadrilatere quad = zone.Rectangle;
 
             return verticalement
                 ? Math.Max(quad.HautDroit.X, quad.BasDroit.X)

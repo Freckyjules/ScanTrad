@@ -50,7 +50,7 @@ namespace ScanTrad.PipelineTests.Effacement
         public void Effacer_ZoneSansBulle_LaisseLImageIntacte()
         {
             ZoneDeTexte onomatopee = new ZoneDeTexte();
-            onomatopee.Quadrilatere = Quadrilatere.DepuisRectangle(20, 20, 60, 60);
+            onomatopee.Rectangle = Quadrilatere.DepuisRectangle(20, 20, 60, 60);
             onomatopee.TexteOriginal = "BEAM";
 
             Planche nettoyee = new EffaceurParRemplissage().Effacer(PlancheSombre(onomatopee));
@@ -160,7 +160,7 @@ namespace ScanTrad.PipelineTests.Effacement
         {
             ZoneDeTexte zone = new ZoneDeTexte();
 
-            zone.Quadrilatere = Quadrilatere.DepuisRectangle(x, y, largeur, hauteur);
+            zone.Rectangle = Quadrilatere.DepuisRectangle(x, y, largeur, hauteur);
             zone.TexteOriginal = "texte";
             zone.Bulle = new Bulle(new List<Coordonnee>
             {

@@ -193,7 +193,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         {
             ZoneDeTexte zone = new ZoneDeTexte();
 
-            zone.Quadrilatere = Quadrilatere.DepuisRectangle(x, y, largeur, hauteur);
+            zone.Rectangle = Quadrilatere.DepuisRectangle(x, y, largeur, hauteur);
             zone.TexteOriginal = texte;
             zone.Confiance = 1;
 

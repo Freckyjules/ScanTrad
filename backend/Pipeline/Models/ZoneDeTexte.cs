@@ -14,7 +14,9 @@ namespace ScanTrad.Pipeline.Models
     {
         #region Attributs
 
-        private Quadrilatere quadrilatere;
+        private Quadrilatere rectangle;
+        private double angle;
+        private double? hauteurDeLigne;
         private Bulle? bulle;
         private string texteOriginal;
         private string? texteTraduit;
@@ -30,7 +32,9 @@ namespace ScanTrad.Pipeline.Models
         /// </summary>
         public ZoneDeTexte()
         {
-            quadrilatere = new Quadrilatere();
+            rectangle = new Quadrilatere();
+            angle = 0;
+            hauteurDeLigne = null;
             bulle = null;
             texteOriginal = string.Empty;
             texteTraduit = null;
@@ -43,13 +47,47 @@ namespace ScanTrad.Pipeline.Models
         #region Propriétés
 
         /// <summary>
-        /// Les quatre coins délimitant le texte. Leur hauteur donne la taille de
-        /// police d'origine, leur inclinaison donne l'angle du texte.
+        /// L'emprise du bloc de texte sur la planche. C'est un rectangle droit — ce
+        /// que rend le détecteur — et le type le porte comme un cas particulier de
+        /// quadrilatère. L'inclinaison du texte est dans <see cref="Angle"/>.
         /// </summary>
-        public Quadrilatere Quadrilatere
+        public Quadrilatere Rectangle
         {
-            get { return quadrilatere; }
-            set { quadrilatere = value; }
+            get { return rectangle; }
+            set { rectangle = value; }
+        }
+
+        /// <summary>
+        /// L'inclinaison du texte par rapport à la planche, en degrés. Zéro pour un
+        /// texte horizontal, positif s'il descend vers la droite — l'axe vertical
+        /// d'une image étant orienté vers le bas.
+        /// </summary>
+        /// <remarks>
+        /// Mesurée à la lecture, sur les boîtes des lignes que rend le moteur d'OCR.
+        /// Elle ne se déduit pas de <see cref="Rectangle"/>, qui est droit par
+        /// construction : c'est pour ça qu'elle est stockée.
+        /// </remarks>
+        public double Angle
+        {
+            get { return angle; }
+            set { angle = value; }
+        }
+
+        /// <summary>
+        /// La hauteur d'une ligne du texte d'origine, en pixels, ou <c>null</c> si
+        /// elle n'a pas été mesurée. Sert de point de départ au rendu pour choisir sa
+        /// taille de police.
+        /// </summary>
+        /// <remarks>
+        /// À ne pas confondre avec la hauteur de <see cref="Rectangle"/>, qui couvre
+        /// le bloc entier — trois cents pixels pour six lignes. Le nombre de lignes
+        /// d'origine étant perdu quand on recolle les textes, cette hauteur ne se
+        /// retrouve pas autrement.
+        /// </remarks>
+        public double? HauteurDeLigne
+        {
+            get { return hauteurDeLigne; }
+            set { hauteurDeLigne = value; }
         }
 
         /// <summary>
@@ -132,12 +170,18 @@ namespace ScanTrad.Pipeline.Models
                 ? "(aucune)"
                 : bulle.ToString();
 
+            string hauteur = hauteurDeLigne == null
+                ? "(pas mesurée)"
+                : FormattableString.Invariant($"{hauteurDeLigne.Value:0.#} px");
+
             string[] lignes =
             {
                 FormattableString.Invariant($"texte original : « {texteOriginal} »"),
                 FormattableString.Invariant($"traduction     : {traduction}"),
                 FormattableString.Invariant($"confiance      : {confiance:0.###}"),
-                FormattableString.Invariant($"géométrie      : {quadrilatere}"),
+                FormattableString.Invariant($"rectangle      : {rectangle}"),
+                FormattableString.Invariant($"angle du texte : {angle:0.#}°"),
+                FormattableString.Invariant($"hauteur ligne  : {hauteur}"),
                 FormattableString.Invariant($"bulle          : {descriptionBulle}"),
                 FormattableString.Invariant($"ordre lecture  : {rang}")
             };
