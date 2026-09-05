@@ -32,7 +32,7 @@ namespace ScanTrad.Pipeline.Lecture
     /// regrouper n'est pas le travail d'un lecteur.
     /// </para>
     /// </remarks>
-    public class LecteurDePageComicTextDetector : ILecteurDePage
+    public class LecteurDePlancheComicTextDetector : ILecteurDePlanche
     {
         #region Constantes
 
@@ -79,7 +79,7 @@ namespace ScanTrad.Pipeline.Lecture
         /// <exception cref="FileNotFoundException">
         /// Levée si le fichier du modèle est introuvable.
         /// </exception>
-        public LecteurDePageComicTextDetector(string cheminDuModele)
+        public LecteurDePlancheComicTextDetector(string cheminDuModele)
             : this(cheminDuModele, 0.5)
         {
         }
@@ -103,7 +103,7 @@ namespace ScanTrad.Pipeline.Lecture
         /// <exception cref="FileNotFoundException">
         /// Levée si le fichier du modèle est introuvable.
         /// </exception>
-        public LecteurDePageComicTextDetector(string cheminDuModele, double confianceMinimale)
+        public LecteurDePlancheComicTextDetector(string cheminDuModele, double confianceMinimale)
         {
             if (string.IsNullOrWhiteSpace(cheminDuModele))
             {
@@ -146,21 +146,21 @@ namespace ScanTrad.Pipeline.Lecture
         #region Méthodes
 
         /// <inheritdoc />
-        public Task<IReadOnlyList<ZoneDeTexte>> LireAsync(byte[] image, CancellationToken jetonAnnulation = default)
+        public Task<Planche> LireAsync(Planche planche, CancellationToken jetonAnnulation = default)
         {
-            if (image == null)
+            if (planche == null)
             {
-                throw new ArgumentNullException(nameof(image));
+                throw new ArgumentNullException(nameof(planche));
             }
 
-            if (image.Length == 0)
+            if (planche.Image.Length == 0)
             {
-                throw new ArgumentException("L'image fournie est vide.", nameof(image));
+                throw new ArgumentException("L'image de la planche est vide.", nameof(planche));
             }
 
             ObjectDisposedException.ThrowIf(libere, this);
 
-            return Task.Run(() => Lire(image, jetonAnnulation), jetonAnnulation);
+            return Task.Run(() => planche.AvecZones(Lire(planche.Image, jetonAnnulation)), jetonAnnulation);
         }
 
         /// <summary>

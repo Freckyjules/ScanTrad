@@ -3,9 +3,9 @@ using ScanTrad.Pipeline.Models;
 namespace ScanTrad.Pipeline.Abstractions
 {
     /// <summary>
-    /// Localise et lit le texte présent sur une page. C'est la première étape du
-    /// pipeline de traduction : elle transforme une image en une liste de zones,
-    /// chacune sachant où elle se trouve et ce qu'elle dit.
+    /// Localise et lit le texte présent sur une planche. Première étape du pipeline :
+    /// elle transforme une image en une liste de zones, chacune sachant où elle se
+    /// trouve et ce qu'elle dit.
     /// </summary>
     /// <remarks>
     /// Localisation et lecture sont volontairement réunies dans une seule opération :
@@ -26,37 +26,40 @@ namespace ScanTrad.Pipeline.Abstractions
     /// <see cref="System.Collections.Generic.IEnumerator{T}"/>.
     /// </para>
     /// <para>
-    /// Charger les modèles prend plusieurs secondes : construire un lecteur par page
-    /// serait un gâchis. On en construit un pour tout un chapitre, et on le libère à
-    /// la fin.
+    /// Charger les modèles prend plusieurs secondes : construire un lecteur par
+    /// planche serait un gâchis. On en construit un pour tout un chapitre, et on le
+    /// libère à la fin.
     /// </para>
     /// </remarks>
-    public interface ILecteurDePage : IDisposable
+    public interface ILecteurDePlanche : IDisposable
     {
         /// <summary>
-        /// Analyse une page et en extrait toutes les zones de texte trouvées.
+        /// Analyse une planche et en extrait toutes les zones de texte trouvées.
         /// </summary>
-        /// <param name="image">
-        /// Contenu binaire du fichier image, tel quel et non décodé. Le format
-        /// (JPEG, PNG, WebP) est reconnu à partir des premiers octets : il n'a pas
-        /// à être précisé.
+        /// <param name="planche">
+        /// La planche à lire. Seule son image est utilisée ; les zones qu'elle porte
+        /// déjà sont remplacées.
         /// </param>
         /// <param name="jetonAnnulation">Jeton permettant d'interrompre le traitement.</param>
         /// <returns>
-        /// Les zones trouvées, chacune portant sa géométrie, son texte et la confiance
-        /// du moteur. La liste est vide si la page ne contient aucun texte lisible.
-        /// L'ordre de lecture n'est pas déterminé à ce stade : les zones arrivent dans
-        /// l'ordre où le moteur les a rencontrées.
+        /// Une nouvelle planche portant les zones trouvées, chacune avec sa géométrie,
+        /// son texte et la confiance du moteur. La liste est vide si la planche ne
+        /// contient aucun texte lisible.
+        /// <para>
+        /// La sortie est brute : ni regroupement en bulles, ni ordre de lecture. Ce
+        /// sont des calculs sur l'ensemble de la planche, qui demandent une
+        /// connaissance du manga qu'un moteur d'OCR n'a pas.
+        /// </para>
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Levée si <paramref name="image"/> vaut <c>null</c>.
+        /// Levée si <paramref name="planche"/> vaut <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Levée si <paramref name="image"/> est vide ou ne contient pas une image décodable.
+        /// Levée si l'image de la planche est vide ou n'est pas décodable.
         /// </exception>
         /// <exception cref="OperationCanceledException">
         /// Levée si le traitement est interrompu via <paramref name="jetonAnnulation"/>.
         /// </exception>
-        Task<IReadOnlyList<ZoneDeTexte>> LireAsync(byte[] image, CancellationToken jetonAnnulation = default);
+        Task<Planche> LireAsync(Planche planche, CancellationToken jetonAnnulation = default);
     }
 }

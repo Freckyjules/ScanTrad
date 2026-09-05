@@ -9,7 +9,7 @@ namespace ScanTrad.PipelineTests.Lecture
     /// Fait tourner les vrais lecteurs sur une vraie planche.
     /// </summary>
     /// <remarks>
-    /// Le contrat de <see cref="ILecteurDePage"/> est vérifié une seule fois, rejoué
+    /// Le contrat de <see cref="ILecteurDePlanche"/> est vérifié une seule fois, rejoué
     /// sur chaque implémentation : une nouvelle n'a qu'à s'ajouter à
     /// <see cref="LesLecteurs"/> pour être contrôlée comme les autres.
     /// <para>
@@ -68,11 +68,11 @@ namespace ScanTrad.PipelineTests.Lecture
         [MemberData(nameof(LesLecteurs))]
         public async Task LireAsync_SurUnePlancheReelle_RespecteLeContrat(string nomDuLecteur)
         {
-            byte[] image = await PlancheDEssai.ChargerAsync();
+            Planche planche = new Planche(await PlancheDEssai.ChargerAsync());
 
-            using ILecteurDePage lecteur = ConstruireLeLecteur(nomDuLecteur);
+            using ILecteurDePlanche lecteur = ConstruireLeLecteur(nomDuLecteur);
 
-            IReadOnlyList<ZoneDeTexte> zones = await lecteur.LireAsync(image);
+            IReadOnlyList<ZoneDeTexte> zones = (await lecteur.LireAsync(planche)).Zones;
 
             Assert.NotNull(zones);
             Assert.NotEmpty(zones);
@@ -93,12 +93,12 @@ namespace ScanTrad.PipelineTests.Lecture
         [Fact]
         public async Task LireAsync_AvecComicTextDetector_RetrouveDesBulles()
         {
-            byte[] image = await PlancheDEssai.ChargerAsync();
+            Planche planche = new Planche(await PlancheDEssai.ChargerAsync());
 
-            using LecteurDePageComicTextDetector lecteur =
-                new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele());
+            using LecteurDePlancheComicTextDetector lecteur =
+                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele());
 
-            IReadOnlyList<ZoneDeTexte> zones = await ((ILecteurDePage)lecteur).LireAsync(image);
+            IReadOnlyList<ZoneDeTexte> zones = (await ((ILecteurDePlanche)lecteur).LireAsync(planche)).Zones;
 
             int avecBulle = zones.Count(zone => zone.Bulle != null);
 
@@ -122,15 +122,15 @@ namespace ScanTrad.PipelineTests.Lecture
             }
         }
 
-        private static ILecteurDePage ConstruireLeLecteur(string nom)
+        private static ILecteurDePlanche ConstruireLeLecteur(string nom)
         {
             switch (nom)
             {
                 case LecteurPaddleOcr:
-                    return new LecteurDePagePaddleOcr();
+                    return new LecteurDePlanchePaddleOcr();
 
                 case LecteurComicTextDetector:
-                    return new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele());
+                    return new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele());
 
                 default:
                     throw new ArgumentException($"Lecteur inconnu : {nom}", nameof(nom));

@@ -20,7 +20,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_DeuxBandesEmpilees_SeLisentDeHautEnBas()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("bas", 100, 900, 300, 100),
                 Bloc("haut", 100, 100, 300, 100)
@@ -36,7 +36,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_DeuxCasesCoteACote_CommencentParLaDroite()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("gauche", 100, 100, 300, 200),
                 Bloc("droite", 900, 100, 300, 200)
@@ -52,12 +52,11 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_DeuxCasesCoteACote_SensOccidental_CommencentParLaGauche()
         {
-            IReadOnlyList<ZoneDeTexte> ordre =
-                new OrdonnanceurParCoupeRecursive(SensDeLecture.GaucheADroite).Ordonner(new[]
-                {
-                    Bloc("gauche", 100, 100, 300, 200),
-                    Bloc("droite", 900, 100, 300, 200)
-                });
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(SensDeLecture.GaucheADroite, new[]
+            {
+                Bloc("gauche", 100, 100, 300, 200),
+                Bloc("droite", 900, 100, 300, 200)
+            });
 
             Assert.Equal(new[] { "gauche", "droite" }, Textes(ordre));
         }
@@ -71,7 +70,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_BulleBasseDansLaBandeDuDessus_PasseAvantUneBulleHauteDeLaBandeSuivante()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("bande 2, en haut a droite", 900, 620, 300, 100),
                 Bloc("bande 1, en bas a gauche", 100, 400, 300, 100)
@@ -89,7 +88,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_PlancheAQuatreBandes_SuitLaStructure()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("4 gauche", 100, 2400, 400, 200),
                 Bloc("3 droite", 900, 1500, 400, 200),
@@ -111,7 +110,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_TroisBullesDansUneMemeCase_SeLisentDeHautEnBasPuisDeDroiteAGauche()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("gauche", 100, 100, 400, 300),
                 Bloc("droite", 420, 100, 400, 300),
@@ -130,7 +129,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_RenseigneLeRangDeChaqueZone()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("bas", 100, 900, 300, 100),
                 Bloc("haut", 100, 100, 300, 100)
@@ -146,7 +145,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_UneSeuleZone_PorteLeRangZero()
         {
-            IReadOnlyList<ZoneDeTexte> ordre = Ordonnanceur().Ordonner(new[]
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
                 Bloc("seule", 100, 100, 300, 100)
             });
@@ -160,7 +159,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_ListeVide_RendUneListeVide()
         {
-            Assert.Empty(Ordonnanceur().Ordonner(Array.Empty<ZoneDeTexte>()));
+            Assert.Empty(Ordonner());
         }
 
         /// <summary>
@@ -169,12 +168,20 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_Null_LeveArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => Ordonnanceur().Ordonner(null!));
+            Assert.Throws<ArgumentNullException>(() => new OrdonnanceurParCoupeRecursive().Ordonner(null!));
         }
 
-        private static IOrdonnanceurDeZones Ordonnanceur()
+        private static IReadOnlyList<ZoneDeTexte> Ordonner(params ZoneDeTexte[] zones)
         {
-            return new OrdonnanceurParCoupeRecursive();
+            return Ordonner(SensDeLecture.DroiteAGauche, zones);
+        }
+
+        private static IReadOnlyList<ZoneDeTexte> Ordonner(SensDeLecture sens, params ZoneDeTexte[] zones)
+        {
+            IOrdonnanceurDeZones ordonnanceur = new OrdonnanceurParCoupeRecursive();
+
+            // L'image ne sert pas à l'ordonnancement ; le sens, lui, vient de la planche.
+            return ordonnanceur.Ordonner(new Planche(Array.Empty<byte>(), sens, zones)).Zones;
         }
 
         private static string[] Textes(IReadOnlyList<ZoneDeTexte> zones)

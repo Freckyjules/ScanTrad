@@ -29,16 +29,18 @@ namespace ScanTrad.Pipeline.Abstractions
         /// Met les zones dans l'ordre de lecture et renseigne leur
         /// <see cref="ZoneDeTexte.OrdreDeLecture"/>.
         /// </summary>
-        /// <param name="zones">
-        /// Les blocs d'une même planche, tels que les rend un regroupeur.
+        /// <param name="planche">
+        /// La planche et ses blocs, tels que les rend un regroupeur. Son
+        /// <see cref="Planche.Sens"/> décide par quel côté d'une bande de cases on
+        /// commence ; son image n'est pas utilisée.
         /// </param>
         /// <returns>
-        /// Les mêmes zones, rendues dans l'ordre de lecture. Chacune porte désormais
-        /// son rang, à partir de zéro.
+        /// Une nouvelle planche portant les mêmes zones, rangées dans l'ordre de
+        /// lecture. Chacune porte désormais son rang, à partir de zéro.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Levée si <paramref name="zones"/> vaut <c>null</c>.
+        /// Levée si <paramref name="planche"/> vaut <c>null</c>.
         /// </exception>
-        IReadOnlyList<ZoneDeTexte> Ordonner(IReadOnlyList<ZoneDeTexte> zones);
+        Planche Ordonner(Planche planche);
     }
 }

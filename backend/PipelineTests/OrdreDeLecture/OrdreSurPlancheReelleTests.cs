@@ -43,21 +43,23 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         public async Task Ordonner_ApresLectureEtRegroupement_DonneUnRangUniqueAChaqueBloc(
             SensDeLecture sens)
         {
-            byte[] image = await PlancheDEssai.ChargerAsync();
+            Planche planche = new Planche(await PlancheDEssai.ChargerAsync(), sens);
 
-            IReadOnlyList<ZoneDeTexte> lignes;
+            Planche lue;
 
-            using (ILecteurDePage lecteur =
-                new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele()))
+            using (ILecteurDePlanche lecteur =
+                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele()))
             {
-                lignes = await lecteur.LireAsync(image);
+                lue = await lecteur.LireAsync(planche);
             }
 
-            IReadOnlyList<ZoneDeTexte> blocs = new RegroupeurDeZones().Regrouper(lignes);
+            // Le sens de lecture vient de la planche, pas d'un réglage de
+            // l'ordonnanceur : la même instance traite les deux sens.
+            Planche groupee = new RegroupeurDeZones().Regrouper(lue);
             IReadOnlyList<ZoneDeTexte> ordre =
-                new OrdonnanceurParCoupeRecursive(sens).Ordonner(blocs);
+                new OrdonnanceurParCoupeRecursive().Ordonner(groupee).Zones;
 
-            Assert.Equal(blocs.Count, ordre.Count);
+            Assert.Equal(groupee.Zones.Count, ordre.Count);
 
             // Les rangs forment exactement la suite 0, 1, 2… sans trou ni doublon.
             Assert.Equal(

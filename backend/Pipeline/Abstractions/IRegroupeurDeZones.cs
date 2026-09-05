@@ -32,18 +32,20 @@ namespace ScanTrad.Pipeline.Abstractions
         /// <summary>
         /// Rassemble les zones d'une même bulle en un bloc unique.
         /// </summary>
-        /// <param name="zones">
-        /// Les zones telles que les rend un lecteur, une par ligne détectée.
+        /// <param name="planche">
+        /// La planche et ses zones, une par ligne détectée, telles que les rend un
+        /// lecteur. Son image n'est pas utilisée.
         /// </param>
         /// <returns>
-        /// Une zone par bloc reconstitué, portant le quadrilatère englobant de ses
-        /// lignes, leurs textes mis bout à bout de haut en bas, la plus basse de leurs
-        /// confiances, et leur bulle. Une zone qu'on n'a pas su rattacher — une
-        /// onomatopée dessinée à même la planche, par exemple — ressort seule.
+        /// Une nouvelle planche portant une zone par bloc reconstitué : le
+        /// quadrilatère englobant de ses lignes, leurs textes mis bout à bout de haut
+        /// en bas, la plus basse de leurs confiances, et leur bulle. Une zone qu'on
+        /// n'a pas su rattacher — une onomatopée dessinée à même la planche, par
+        /// exemple — ressort seule.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Levée si <paramref name="zones"/> vaut <c>null</c>.
+        /// Levée si <paramref name="planche"/> vaut <c>null</c>.
         /// </exception>
-        IReadOnlyList<ZoneDeTexte> Regrouper(IReadOnlyList<ZoneDeTexte> zones);
+        Planche Regrouper(Planche planche);
     }
 }

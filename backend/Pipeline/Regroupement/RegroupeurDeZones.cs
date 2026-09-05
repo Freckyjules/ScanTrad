@@ -7,9 +7,9 @@ namespace ScanTrad.Pipeline.Regroupement
     /// Rassemble les lignes d'une même bulle en un seul bloc de texte.
     /// </summary>
     /// <remarks>
-    /// Une page est mixte : sur une planche d'essai, 45 zones sur 61 avaient une
+    /// Une planche est mixte : sur une planche d'essai, 45 zones sur 61 avaient une
     /// bulle et les autres non. La stratégie se décide donc zone par zone, et non une
-    /// fois pour toute la page.
+    /// fois pour toute la planche.
     /// <para>
     /// Là où une bulle est connue, elle fait foi : le dessinateur a déjà fait le
     /// travail de regroupement, il suffit de le lire, et il n'y a aucun seuil à
@@ -53,17 +53,17 @@ namespace ScanTrad.Pipeline.Regroupement
         #region Méthodes
 
         /// <inheritdoc />
-        public IReadOnlyList<ZoneDeTexte> Regrouper(IReadOnlyList<ZoneDeTexte> zones)
+        public Planche Regrouper(Planche planche)
         {
-            if (zones == null)
+            if (planche == null)
             {
-                throw new ArgumentNullException(nameof(zones));
+                throw new ArgumentNullException(nameof(planche));
             }
 
             List<List<ZoneDeTexte>> blocs = new List<List<ZoneDeTexte>>();
             List<ZoneDeTexte> sansBulle = new List<ZoneDeTexte>();
 
-            foreach (ZoneDeTexte zone in zones)
+            foreach (ZoneDeTexte zone in planche.Zones)
             {
                 if (zone.Bulle == null)
                 {
@@ -98,7 +98,7 @@ namespace ScanTrad.Pipeline.Regroupement
 
             resultat.AddRange(RassemblerSansBulle(orphelines));
 
-            return resultat;
+            return planche.AvecZones(resultat);
         }
 
         #endregion

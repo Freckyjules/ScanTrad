@@ -66,77 +66,33 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
 
         #endregion
 
-        #region Attributs
-
-        private SensDeLecture sens;
-
-        #endregion
-
-        #region Constructeurs
-
-        /// <summary>
-        /// Initialise un ordonnanceur pour une planche qui se lit de droite à gauche,
-        /// le sens du manga d'origine.
-        /// </summary>
-        public OrdonnanceurParCoupeRecursive()
-            : this(SensDeLecture.DroiteAGauche)
-        {
-        }
-
-        /// <summary>
-        /// Initialise un ordonnanceur pour un sens de lecture donné.
-        /// </summary>
-        /// <param name="sens">
-        /// Le sens dans lequel se parcourent les cases d'une bande. Une édition
-        /// anglaise retournée se lit de gauche à droite.
-        /// </param>
-        public OrdonnanceurParCoupeRecursive(SensDeLecture sens)
-        {
-            this.sens = sens;
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Le sens dans lequel se parcourent les cases d'une même bande.
-        /// </summary>
-        public SensDeLecture Sens
-        {
-            get { return sens; }
-            set { sens = value; }
-        }
-
-        #endregion
-
         #region Méthodes
 
         /// <inheritdoc />
-        public IReadOnlyList<ZoneDeTexte> Ordonner(IReadOnlyList<ZoneDeTexte> zones)
+        public Planche Ordonner(Planche planche)
         {
-            if (zones == null)
+            if (planche == null)
             {
-                throw new ArgumentNullException(nameof(zones));
+                throw new ArgumentNullException(nameof(planche));
             }
 
             List<ZoneDeTexte> ordonnees = new List<ZoneDeTexte>();
 
-            Parcourir(new List<ZoneDeTexte>(zones), ordonnees);
+            Parcourir(new List<ZoneDeTexte>(planche.Zones), ordonnees, planche.Sens);
 
             for (int rang = 0; rang < ordonnees.Count; rang++)
             {
                 ordonnees[rang].OrdreDeLecture = rang;
             }
 
-            return ordonnees;
+            return planche.AvecZones(ordonnees);
         }
 
         #endregion
 
         #region Méthodes privées
 
-        private void Parcourir(List<ZoneDeTexte> region, List<ZoneDeTexte> sortie)
+        private static void Parcourir(List<ZoneDeTexte> region, List<ZoneDeTexte> sortie, SensDeLecture sens)
         {
             if (region.Count <= 1)
             {
@@ -152,7 +108,7 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
             {
                 foreach (List<ZoneDeTexte> bande in bandes)
                 {
-                    Parcourir(bande, sortie);
+                    Parcourir(bande, sortie, sens);
                 }
 
                 return;
@@ -169,16 +125,16 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
 
                 foreach (List<ZoneDeTexte> colonne in colonnes)
                 {
-                    Parcourir(colonne, sortie);
+                    Parcourir(colonne, sortie, sens);
                 }
 
                 return;
             }
 
-            sortie.AddRange(OrdonnerDansUneCase(region));
+            sortie.AddRange(OrdonnerDansUneCase(region, sens));
         }
 
-        private List<List<ZoneDeTexte>>? Decouper(List<ZoneDeTexte> region, bool Verticalement)
+        private static List<List<ZoneDeTexte>>? Decouper(List<ZoneDeTexte> region, bool Verticalement)
         {
             double gouttiere = GouttiereMinimale * HauteurMoyenne(region);
 
@@ -210,7 +166,7 @@ namespace ScanTrad.Pipeline.OrdreDeLecture
             return morceaux.Count > 1 ? morceaux : null;
         }
 
-        private List<ZoneDeTexte> OrdonnerDansUneCase(List<ZoneDeTexte> region)
+        private static List<ZoneDeTexte> OrdonnerDansUneCase(List<ZoneDeTexte> region, SensDeLecture sens)
         {
             // Aucune gouttière : les bulles se chevauchent sur les deux axes. On
             // retombe sur la règle simple, du haut vers le bas puis dans le sens de

@@ -37,17 +37,18 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public async Task Regrouper_ApresUneLectureReelle_ReconstitueDesPhrases()
         {
-            byte[] image = await PlancheDEssai.ChargerAsync();
+            Planche planche = new Planche(await PlancheDEssai.ChargerAsync());
 
-            IReadOnlyList<ZoneDeTexte> lignes;
+            Planche lue;
 
-            using (ILecteurDePage lecteur =
-                new LecteurDePageComicTextDetector(PlancheDEssai.TrouverLeModele()))
+            using (ILecteurDePlanche lecteur =
+                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele()))
             {
-                lignes = await lecteur.LireAsync(image);
+                lue = await lecteur.LireAsync(planche);
             }
 
-            IReadOnlyList<ZoneDeTexte> blocs = new RegroupeurDeZones().Regrouper(lignes);
+            IReadOnlyList<ZoneDeTexte> lignes = lue.Zones;
+            IReadOnlyList<ZoneDeTexte> blocs = new RegroupeurDeZones().Regrouper(lue).Zones;
 
             Assert.NotEmpty(blocs);
             Assert.True(

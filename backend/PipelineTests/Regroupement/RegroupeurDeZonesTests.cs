@@ -23,7 +23,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, bulle)
@@ -40,7 +40,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_MemeBulleMaisInstancesDistinctes_NeFontQuUnBloc()
         {
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, ConstruireBulle(200, 1000, 240, 280)),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, ConstruireBulle(200, 1000, 240, 280))
@@ -55,7 +55,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_BullesDifferentes_RestentSeparees()
         {
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, ConstruireBulle(200, 1000, 240, 280)),
                 ConstruireLigne("AHHH!", 940, 1101, 170, 51, ConstruireBulle(920, 1080, 210, 170))
@@ -75,7 +75,7 @@ namespace ScanTrad.PipelineTests.Regroupement
             Bulle premiere = ConstruireBulle(200, 1000, 240, 280);
             Bulle seconde = ConstruireBulle(920, 1080, 210, 170);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, premiere),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, premiere),
@@ -101,7 +101,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, bulle),
@@ -118,7 +118,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_ZonesSansBulleEloignees_RestentSeparees()
         {
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("BEAM", 143, 330, 267, 92, null),
                 ConstruireLigne("JOLT", 552, 892, 136, 91, null)
@@ -134,7 +134,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_ZonesSansBulleCoteACote_RestentSeparees()
         {
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, null),
                 ConstruireLigne("AHHH!", 940, 1017, 170, 49, null)
@@ -150,7 +150,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_ZonesSansBulleEmpilees_NeFontQuUnBloc()
         {
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, null),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, null)
@@ -170,7 +170,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("CANT", 252, 1058, 121, 45, null),
@@ -192,7 +192,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("GO OFF", 236, 1099, 153, 44, bulle),
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
@@ -210,7 +210,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle, 0.99),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, bulle, 0.62)
@@ -227,7 +227,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("GO OFF", 236, 1099, 153, 44, bulle)
@@ -250,7 +250,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, bulle)
@@ -267,7 +267,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         {
             Bulle bulle = ConstruireBulle(200, 1000, 240, 280);
 
-            IReadOnlyList<ZoneDeTexte> zones = Regroupeur().Regrouper(new[]
+            IReadOnlyList<ZoneDeTexte> zones = Regrouper(new[]
             {
                 ConstruireLigne("YOU", 260, 1017, 100, 49, bulle),
                 ConstruireLigne("CAN'T", 252, 1058, 121, 45, bulle)
@@ -285,7 +285,7 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_ListeVide_RendUneListeVide()
         {
-            Assert.Empty(Regroupeur().Regrouper(Array.Empty<ZoneDeTexte>()));
+            Assert.Empty(Regrouper());
         }
 
         /// <summary>
@@ -294,12 +294,20 @@ namespace ScanTrad.PipelineTests.Regroupement
         [Fact]
         public void Regrouper_Null_LeveArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => Regroupeur().Regrouper(null!));
+            Assert.Throws<ArgumentNullException>(() => new RegroupeurDeZones().Regrouper(null!));
         }
 
-        private static IRegroupeurDeZones Regroupeur()
+        private static IReadOnlyList<ZoneDeTexte> Regrouper(params ZoneDeTexte[] zones)
         {
-            return new RegroupeurDeZones();
+            IRegroupeurDeZones regroupeur = new RegroupeurDeZones();
+
+            return regroupeur.Regrouper(PlancheAvec(zones)).Zones;
+        }
+
+        private static Planche PlancheAvec(params ZoneDeTexte[] zones)
+        {
+            // Ni image ni sens de lecture ne servent au regroupement.
+            return new Planche(Array.Empty<byte>(), SensDeLecture.DroiteAGauche, zones);
         }
 
         private static ZoneDeTexte ConstruireLigne(
