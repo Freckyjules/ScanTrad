@@ -3,7 +3,7 @@ using ScanTrad.Pipeline.Lecture;
 using ScanTrad.Pipeline.Models;
 using Xunit.Abstractions;
 
-namespace ScanTrad.PipelineTests.Integration
+namespace ScanTrad.PipelineTests.Lecture
 {
     /// <summary>
     /// Fait tourner les vrais lecteurs sur une vraie planche.
