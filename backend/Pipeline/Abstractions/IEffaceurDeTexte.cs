@@ -4,8 +4,7 @@ namespace ScanTrad.Pipeline.Abstractions
 {
     /// <summary>
     /// Efface le texte d'origine d'une planche pour laisser la place au texte
-    /// traduit. Quatrième étape du pipeline, après la lecture, le regroupement et
-    /// l'ordre.
+    /// traduit. Troisième étape du pipeline, après la lecture et l'ordonnancement.
     /// </summary>
     /// <remarks>
     /// La planche rendue porte l'<em>image nettoyée</em>, et c'est un livrable à

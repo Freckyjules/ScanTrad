@@ -5,20 +5,26 @@ using ScanTrad.Pipeline.OrdreDeLecture;
 namespace ScanTrad.PipelineTests.OrdreDeLecture
 {
     /// <summary>
-    /// Vérifie que la coupe récursive retrouve l'ordre de lecture d'une planche.
+    /// Vérifie l'ordre que rend la règle globale : de haut en bas, puis dans le sens
+    /// de lecture à hauteur égale.
     /// </summary>
     /// <remarks>
     /// Les mises en page sont écrites à la main, en rectangles : le test ne dépend
-    /// d'aucune image ni d'aucun modèle. Elles reprennent la structure de planches
-    /// réelles — bandes empilées, cases côte à côte, cases imbriquées.
+    /// d'aucune image ni d'aucun modèle.
+    /// <para>
+    /// Un des tests décrit une mise en page que la règle ordonne <em>mal</em>, et
+    /// fige ce mauvais ordre exprès. C'est une limite acceptée, pas un bogue en
+    /// attente : si quelqu'un réintroduit un jour la structure des cases, ce test
+    /// tombera et forcera une décision consciente plutôt qu'un changement discret.
+    /// </para>
     /// </remarks>
-    public class OrdonnanceurParCoupeRecursiveTests
+    public class OrdonnanceurDeZonesTests
     {
         /// <summary>
-        /// Deux bandes empilées se lisent de haut en bas, quel que soit le sens.
+        /// Deux blocs empilés se lisent de haut en bas, quel que soit le sens.
         /// </summary>
         [Fact]
-        public void Ordonner_DeuxBandesEmpilees_SeLisentDeHautEnBas()
+        public void Ordonner_DeuxBlocsEmpiles_SeLisentDeHautEnBas()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
@@ -30,11 +36,11 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         }
 
         /// <summary>
-        /// Deux cases côte à côte se lisent en commençant par la droite, comme dans
-        /// un manga d'origine.
+        /// Deux blocs à la même hauteur se lisent en commençant par la droite, comme
+        /// dans un manga d'origine.
         /// </summary>
         [Fact]
-        public void Ordonner_DeuxCasesCoteACote_CommencentParLaDroite()
+        public void Ordonner_DeuxBlocsALaMemeHauteur_CommencentParLaDroite()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
@@ -46,11 +52,11 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         }
 
         /// <summary>
-        /// Sur une édition retournée, les mêmes cases se lisent dans l'autre sens.
+        /// Sur une édition retournée, les mêmes blocs se lisent dans l'autre sens.
         /// C'est le seul endroit du calcul que le sens de lecture change.
         /// </summary>
         [Fact]
-        public void Ordonner_DeuxCasesCoteACote_SensOccidental_CommencentParLaGauche()
+        public void Ordonner_DeuxBlocsALaMemeHauteur_SensOccidental_CommencentParLaGauche()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(SensDeLecture.GaucheADroite, new[]
             {
@@ -62,31 +68,88 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         }
 
         /// <summary>
-        /// Le cas qu'aucun tri ne saurait traiter : une bulle plus basse et plus à
-        /// gauche passe avant une bulle plus haute et plus à droite, parce qu'elle
-        /// appartient à la bande du dessus. Deux positions relatives identiques
-        /// donnent deux ordres opposés selon la structure autour d'elles.
+        /// Deux blocs <em>presque</em> à la même hauteur forment quand même une bande,
+        /// et c'est le côté qui les départage.
         /// </summary>
+        /// <remarks>
+        /// C'est le cas que rate une comparaison stricte des hauteurs. Ici le bloc de
+        /// gauche est 18 pixels plus haut que celui de droite : une comparaison au
+        /// pixel près trancherait sur cet écart et rendrait « gauche, droite » sur un
+        /// manga d'origine, sans jamais regarder le côté. Sur une vraie planche deux
+        /// bulles voisines ne sont jamais exactement à la même hauteur, et le sens de
+        /// lecture ne servirait donc jamais.
+        /// <para>
+        /// Les deux boîtes faisant 200 pixels de haut, cet écart les laisse largement
+        /// dans la même bande.
+        /// </para>
+        /// </remarks>
         [Fact]
-        public void Ordonner_BulleBasseDansLaBandeDuDessus_PasseAvantUneBulleHauteDeLaBandeSuivante()
+        public void Ordonner_DeuxBlocsPresqueALaMemeHauteur_CommencentParLaDroite()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
-                Bloc("bande 2, en haut a droite", 900, 620, 300, 100),
-                Bloc("bande 1, en bas a gauche", 100, 400, 300, 100)
+                Bloc("gauche", 100, 100, 300, 200),
+                Bloc("droite", 900, 118, 300, 200)
+            });
+
+            Assert.Equal(new[] { "droite", "gauche" }, Textes(ordre));
+        }
+
+        /// <summary>
+        /// La hauteur prime sur le côté : un bloc plus haut passe avant, même s'il se
+        /// trouve du côté par lequel on finit de lire.
+        /// </summary>
+        [Fact]
+        public void Ordonner_UnBlocPlusHaut_PasseAvantUnBlocPlusBas()
+        {
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
+            {
+                Bloc("plus bas, a droite", 900, 620, 300, 100),
+                Bloc("plus haut, a gauche", 100, 400, 300, 100)
             });
 
             Assert.Equal(
-                new[] { "bande 1, en bas a gauche", "bande 2, en haut a droite" },
+                new[] { "plus haut, a gauche", "plus bas, a droite" },
                 Textes(ordre));
         }
 
         /// <summary>
-        /// Une planche complète : deux bandes pleine largeur, puis une bande coupée
-        /// en deux cases. C'est la structure de la planche d'essai.
+        /// La limite assumée : deux colonnes de cases s'entrelacent au lieu de
+        /// s'enchaîner.
+        /// </summary>
+        /// <remarks>
+        /// Un lecteur descend la colonne de droite en entier avant de passer à celle
+        /// de gauche, et attendrait donc « droite haut, droite bas, gauche haut,
+        /// gauche bas ». La règle globale alterne, parce qu'elle ne voit que des
+        /// hauteurs et ignore qu'il y a deux colonnes.
+        /// <para>
+        /// Retrouver le bon ordre demanderait de détecter les cases. C'est ce qu'on a
+        /// choisi de ne pas faire : le rang reste une proposition, corrigeable depuis
+        /// le front.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void Ordonner_DeuxColonnesDeCases_LesEntrelaceAuLieuDeLesEnchainer()
+        {
+            IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
+            {
+                Bloc("droite haut", 900, 100, 300, 100),
+                Bloc("gauche haut", 100, 200, 300, 100),
+                Bloc("droite bas", 900, 400, 300, 100),
+                Bloc("gauche bas", 100, 500, 300, 100)
+            });
+
+            Assert.Equal(
+                new[] { "droite haut", "gauche haut", "droite bas", "gauche bas" },
+                Textes(ordre));
+        }
+
+        /// <summary>
+        /// Une planche à quatre bandes, dont deux coupées en deux cases : la règle
+        /// tombe juste tant que les bandes ne se chevauchent pas verticalement.
         /// </summary>
         [Fact]
-        public void Ordonner_PlancheAQuatreBandes_SuitLaStructure()
+        public void Ordonner_PlancheAQuatreBandes_DescendPuisSuitLeSens()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
@@ -104,11 +167,10 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         }
 
         /// <summary>
-        /// Dans une même case, plusieurs bulles se lisent de haut en bas puis de
-        /// droite à gauche.
+        /// Trois blocs serrés se lisent de haut en bas puis de droite à gauche.
         /// </summary>
         [Fact]
-        public void Ordonner_TroisBullesDansUneMemeCase_SeLisentDeHautEnBasPuisDeDroiteAGauche()
+        public void Ordonner_TroisBlocsSerres_SeLisentDeHautEnBasPuisDeDroiteAGauche()
         {
             IReadOnlyList<ZoneDeTexte> ordre = Ordonner(new[]
             {
@@ -117,8 +179,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
                 Bloc("dessous", 200, 300, 400, 300)
             });
 
-            // Les trois se chevauchent sur les deux axes : aucune coupe n'est
-            // possible. Les deux premières étant à la même hauteur, c'est le sens de
+            // Les deux premiers sont exactement à la même hauteur : c'est le sens de
             // lecture qui les départage.
             Assert.Equal(new[] { "droite", "gauche", "dessous" }, Textes(ordre));
         }
@@ -140,7 +201,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         }
 
         /// <summary>
-        /// Une seule bulle porte le rang zéro.
+        /// Un seul bloc porte le rang zéro.
         /// </summary>
         [Fact]
         public void Ordonner_UneSeuleZone_PorteLeRangZero()
@@ -168,7 +229,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         [Fact]
         public void Ordonner_Null_LeveArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => new OrdonnanceurParCoupeRecursive().Ordonner(null!));
+            Assert.Throws<ArgumentNullException>(() => new OrdonnanceurDeZones().Ordonner(null!));
         }
 
         private static IReadOnlyList<ZoneDeTexte> Ordonner(params ZoneDeTexte[] zones)
@@ -178,7 +239,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
 
         private static IReadOnlyList<ZoneDeTexte> Ordonner(SensDeLecture sens, params ZoneDeTexte[] zones)
         {
-            IOrdonnanceurDeZones ordonnanceur = new OrdonnanceurParCoupeRecursive();
+            IOrdonnanceurDeZones ordonnanceur = new OrdonnanceurDeZones();
 
             // L'image ne sert pas à l'ordonnancement ; le sens, lui, vient de la planche.
             return ordonnanceur.Ordonner(new Planche(Array.Empty<byte>(), sens, zones)).Zones;

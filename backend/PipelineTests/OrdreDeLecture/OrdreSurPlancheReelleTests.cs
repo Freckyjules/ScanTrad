@@ -58,7 +58,7 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
 
             // Le sens de lecture vient de la planche, pas d'un réglage de
             // l'ordonnanceur : la même instance traite les deux sens.
-            Planche ordonnee = new OrdonnanceurParCoupeRecursive().Ordonner(lue);
+            Planche ordonnee = new OrdonnanceurDeZones().Ordonner(lue);
             IReadOnlyList<ZoneDeTexte> ordre = ordonnee.Zones;
 
             Assert.Equal(lue.Zones.Count, ordre.Count);
