@@ -85,7 +85,7 @@ namespace ScanTrad.PipelineTests
             originale = new Planche(await PlancheDEssai.ChargerAsync());
 
             using ILecteurDePlanche lecteur =
-                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele());
+                new LecteurDePlanche(PlancheDEssai.TrouverLeModele());
 
             lue = await lecteur.LireAsync(originale);
         }

@@ -32,7 +32,7 @@ namespace ScanTrad.Pipeline.Lecture
     /// ramasse tout, bruit compris.
     /// </para>
     /// </remarks>
-    public class LecteurDePlancheComicTextDetector : ILecteurDePlanche
+    public class LecteurDePlanche : ILecteurDePlanche
     {
         #region Constantes
 
@@ -68,7 +68,7 @@ namespace ScanTrad.Pipeline.Lecture
         /// <exception cref="FileNotFoundException">
         /// Levée si le fichier du modèle est introuvable.
         /// </exception>
-        public LecteurDePlancheComicTextDetector(string cheminDuModele)
+        public LecteurDePlanche(string cheminDuModele)
             : this(cheminDuModele, 0.5)
         {
         }
@@ -91,7 +91,7 @@ namespace ScanTrad.Pipeline.Lecture
         /// <exception cref="FileNotFoundException">
         /// Levée si le fichier du modèle est introuvable.
         /// </exception>
-        public LecteurDePlancheComicTextDetector(string cheminDuModele, double confianceMinimale)
+        public LecteurDePlanche(string cheminDuModele, double confianceMinimale)
         {
             if (confianceMinimale < 0 || confianceMinimale > 1)
             {

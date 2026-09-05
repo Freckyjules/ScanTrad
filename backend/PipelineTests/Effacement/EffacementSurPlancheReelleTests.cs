@@ -43,7 +43,7 @@ namespace ScanTrad.PipelineTests.Effacement
             Planche lue;
 
             using (ILecteurDePlanche lecteur =
-                new LecteurDePlancheComicTextDetector(PlancheDEssai.TrouverLeModele()))
+                new LecteurDePlanche(PlancheDEssai.TrouverLeModele()))
             {
                 lue = await lecteur.LireAsync(originale);
             }
