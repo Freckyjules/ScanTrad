@@ -47,17 +47,10 @@ namespace ScanTrad.Pipeline.Abstractions
         /// <param name="planche">
         /// La planche et ses zones, dans l'ordre de lecture. Seuls les textes sont
         /// utilisés ; l'image ne sert pas.
-        /// <para>
-        /// Une zone dont <see cref="ZoneDeTexte.TexteTraduit"/> est déjà renseigné
-        /// n'est <b>pas</b> retraduite : c'est ce qui rend sûr le fait de relancer
-        /// l'étape sur une planche que l'utilisateur a déjà corrigée. Pour obtenir une
-        /// traduction neuve, on remet le champ à <c>null</c> avant d'appeler.
-        /// </para>
         /// </param>
         /// <param name="jetonAnnulation">Jeton permettant d'interrompre le traitement.</param>
         /// <returns>
-        /// Une nouvelle planche portant les mêmes zones, traduites. La planche reçue
-        /// reste inchangée.
+        /// Une nouvelle planche portant les mêmes zones, traduites.
         /// <para>
         /// Une zone que le traducteur n'a pas su traduire garde un texte traduit à
         /// <c>null</c> : c'est le signe qu'il reste du travail, là où une chaîne vide
