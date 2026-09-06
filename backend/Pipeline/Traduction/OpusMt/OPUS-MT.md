@@ -1,7 +1,8 @@
 # OPUS-MT — où on en est
 
-> **État au 6 septembre 2026.** Le modèle est exporté et présent sur la machine.
-> Le moteur C# qui s'en sert **n'est pas écrit**.
+> **État au 6 septembre 2026.** Le modèle est exporté, et le moteur C# qui s'en
+> sert **fonctionne** : la chaîne lecture → ordre → traduction rend du français
+> sur une vraie planche.
 
 ## Ce qu'est OPUS-MT
 
@@ -13,10 +14,55 @@ sur processeur, la carte graphique ne sert pas.
 C'est aussi ce qui se cache derrière Argos Translate, donc derrière
 LibreTranslate.
 
-Ses limites, connues d'avance : il traduit **phrase par phrase sans mémoire**,
-donc le registre et le tutoiement varieront d'une bulle à l'autre ; il n'a jamais
-vu de texte tout en majuscules, ce que produit pourtant notre OCR ; et sur une
-entrée très courte ou dégradée il part parfois en répétition.
+Sa limite de fond : il traduit **phrase par phrase sans aucune mémoire**. Le
+registre, le tutoiement et le genre des pronoms varient donc d'une bulle à
+l'autre sur la même page, et ça ne se règle pas — c'est l'architecture. Seul un
+LLM, à qui l'on peut donner le dialogue entier, y répondrait.
+
+Sur une entrée très courte ou abîmée, il part aussi parfois en répétition. Le
+moteur borne la génération pour couper court, mais le texte rendu restera mauvais.
+
+## Le moteur C#
+
+`TraductionOpusMt` implémente `ITraducteur` et se construit par
+`ChoixDuTraducteur`. Mesuré : **1,3 s** de chargement, puis **environ 630 ms par
+bulle**. Rien n'utilise la carte graphique.
+
+Deux pièges ont été trouvés en mesurant, et **chacun aurait produit du charabia
+sans que rien ne le signale**. Ils sont commentés dans le code avec leurs
+chiffres ; ne les défaites pas sans refaire la mesure.
+
+**La tokenisation.** `source.spm` porte 32 000 pièces avec ses propres
+identifiants, le modèle en attend 59 514 numérotés autrement — concordance nulle
+sur les 200 premiers. On tokenise donc en *pièces* avec SentencePiece, puis on
+traduit ces pièces en identifiants par `vocab.json`. Se servir directement des
+identifiants de SentencePiece compile, s'exécute, et rend n'importe quoi.
+
+**La casse.** Le modèle n'a jamais vu de texte crié, or l'OCR d'une planche ne
+produit que des majuscules. Trois phrases d'essai contre les mêmes en casse
+normale : trois contresens sur trois, avec des mots inventés. Le moteur
+normalise donc la casse avant de traduire, en remettant le pronom « I » isolé en
+majuscule. Un test d'intégration protège cette correction.
+
+### Le décodage
+
+Recherche en faisceau à quatre hypothèses, ce que recommande la configuration du
+modèle. Chaque faisceau porte son propre cache de décodeur — deux hypothèses
+divergentes n'ont pas le même état interne. Les scores sont convertis en
+logarithmes de vraisemblance, puis **rapportés à la longueur** : sans cette
+normalisation, une phrase tronquée gagnerait toujours contre une phrase complète.
+
+Mesuré contre un décodage glouton : **629 ms par phrase au lieu de 289**, et le
+glouton perdait des adverbes. `new TraductionOpusMt(dossier, 1)` redonne
+exactement le glouton si la vitesse compte plus.
+
+### Ce que le contrat ne promet plus
+
+Ni « une zone déjà traduite est épargnée », ni « la planche reçue reste
+intacte » : le moteur remplit les zones sur place, comme le fait déjà
+l'ordonnanceur. **La première sera à rétablir** le jour où le front permettra de
+corriger une traduction — sans elle, relancer l'étape écrase le travail de
+l'utilisateur, ce qui contredit la contrainte fondatrice du projet.
 
 ## Ce qui est sur la machine
 
