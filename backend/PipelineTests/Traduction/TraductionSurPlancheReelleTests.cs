@@ -8,12 +8,18 @@ namespace ScanTrad.PipelineTests.Traduction
 {
     /// <summary>
     /// Enchaîne lecture, ordre de lecture et traduction sur une vraie planche, et
-    /// affiche le dialogue français obtenu.
+    /// affiche le dialogue français obtenu — une fois par moteur.
     /// </summary>
     /// <remarks>
     /// Ce n'est pas vraiment un test : aucune assertion ne peut dire si une traduction
     /// est bonne. Son produit est la sortie, faite pour être lue par un humain — c'est
-    /// le seul endroit où l'on voit ce que la chaîne complète donne réellement.
+    /// le seul endroit où l'on voit ce que la chaîne complète donne réellement, et le
+    /// seul moyen de comparer deux moteurs sur la même planche.
+    /// <para>
+    /// Le moteur est un paramètre, donc son nom apparaît dans le nom du test :
+    /// l'explorateur affiche <c>(moteur: OpusMt)</c> et <c>(moteur: Nllb)</c>, et on
+    /// ouvre directement celui qu'on veut lire.
+    /// </para>
     /// <para>
     /// La seule vérification est qu'au moins une zone est ressortie traduite. Sans
     /// elle, une chaîne cassée passerait au vert en n'affichant rien, ce qui serait
@@ -46,8 +52,11 @@ namespace ScanTrad.PipelineTests.Traduction
         /// <summary>
         /// Lit, ordonne, traduit, et affiche le dialogue anglais face au français.
         /// </summary>
-        [Fact]
-        public async Task Traduire_ApresLectureEtOrdre_AfficheLeDialogue()
+        /// <param name="moteur">Le moteur de traduction mis à l'épreuve.</param>
+        [Theory]
+        [InlineData(MoteurDeTraduction.OpusMt)]
+        [InlineData(MoteurDeTraduction.Nllb)]
+        public async Task Traduire_ApresLectureEtOrdre_AfficheLeDialogue(MoteurDeTraduction moteur)
         {
             // Cette édition est retournée : elle se lit de gauche à droite.
             Planche ordonnee = new OrdonnanceurDeZones()
@@ -55,8 +64,7 @@ namespace ScanTrad.PipelineTests.Traduction
 
             Stopwatch chrono = Stopwatch.StartNew();
 
-            using ITraducteur traducteur = new ChoixDuTraducteur(ModeleOpusMt.Trouver())
-                .Creer(MoteurDeTraduction.OpusMt);
+            using ITraducteur traducteur = new ChoixDuTraducteur().Creer(moteur);
 
             long chargement = chrono.ElapsedMilliseconds;
             chrono.Restart();
@@ -66,12 +74,13 @@ namespace ScanTrad.PipelineTests.Traduction
 
             chrono.Stop();
 
-            Decrire(traduite, chargement, chrono.ElapsedMilliseconds);
+            Decrire(moteur, traduite, chargement, chrono.ElapsedMilliseconds);
 
             Assert.Contains(traduite.Zones, zone => !string.IsNullOrWhiteSpace(zone.TexteTraduit));
         }
 
-        private void Decrire(Planche traduite, long chargement, long traduction)
+        private void Decrire(
+            MoteurDeTraduction moteur, Planche traduite, long chargement, long traduction)
         {
             IReadOnlyList<ZoneDeTexte> parOrdre = traduite.Zones
                 .OrderBy(zone => zone.OrdreDeLecture)
@@ -79,10 +88,12 @@ namespace ScanTrad.PipelineTests.Traduction
 
             int traduites = parOrdre.Count(zone => !string.IsNullOrWhiteSpace(zone.TexteTraduit));
 
+            sortie.WriteLine($"Moteur       : {moteur}");
             sortie.WriteLine($"Planche      : {PlancheDEssai.Nom}");
             sortie.WriteLine($"Blocs        : {parOrdre.Count}, dont {traduites} traduits");
             sortie.WriteLine($"Chargement   : {chargement} ms");
-            sortie.WriteLine($"Traduction   : {traduction} ms");
+            sortie.WriteLine($"Traduction   : {traduction} ms " +
+                             $"({traduction / Math.Max(1, traduites)} ms par bloc)");
             sortie.WriteLine(string.Empty);
 
             foreach (ZoneDeTexte zone in parOrdre)

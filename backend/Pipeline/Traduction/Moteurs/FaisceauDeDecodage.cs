@@ -1,6 +1,6 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
 
-namespace ScanTrad.Pipeline.Traduction.OpusMt
+namespace ScanTrad.Pipeline.Traduction.Moteurs
 {
     /// <summary>
     /// Une hypothèse de traduction en cours de construction, dans la recherche en
@@ -17,7 +17,7 @@ namespace ScanTrad.Pipeline.Traduction.OpusMt
     /// donc partager les tenseurs de ce parent sans risque.
     /// </para>
     /// </remarks>
-    internal class FaisceauDeDecodage
+    public class FaisceauDeDecodage
     {
         #region Attributs
 

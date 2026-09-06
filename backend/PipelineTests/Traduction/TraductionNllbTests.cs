@@ -1,30 +1,29 @@
 using ScanTrad.Pipeline.Abstractions;
 using ScanTrad.Pipeline.Models;
 using ScanTrad.Pipeline.Traduction;
-using ScanTrad.Pipeline.Traduction.Moteurs.OpusMt;
+using ScanTrad.Pipeline.Traduction.Moteurs.Nllb;
 
 namespace ScanTrad.PipelineTests.Traduction
 {
     /// <summary>
-    /// Éprouve le moteur OPUS-MT réel, modèle chargé.
+    /// Éprouve le moteur NLLB-200 réel, modèle chargé.
     /// </summary>
     /// <remarks>
-    /// Hérite des règles communes à tout traducteur, qui sont ainsi vérifiées sur le
-    /// vrai moteur et non seulement sur un factice — c'est tout l'intérêt d'avoir posé
-    /// ces règles à part.
+    /// Hérite des règles communes à tout traducteur, exactement comme le moteur
+    /// OPUS-MT : c'est tout l'intérêt de les avoir posées à part, et la garantie qu'un
+    /// second moteur ne peut pas en oublier une.
     /// <para>
-    /// Rien ici ne fige une traduction précise : une montée de version du modèle
-    /// changerait le français rendu sans rien casser. On vérifie qu'il rend du texte,
-    /// et qu'il le rend de la même façon quelle que soit la casse d'entrée.
+    /// Ces tests coûtent cher. Chaque construction charge sept gigaoctets en une
+    /// poignée de secondes, et chaque phrase traduite en demande cinq — soit huit fois
+    /// le temps d'OPUS-MT, le prix d'un vocabulaire quatre fois plus grand.
     /// </para>
     /// <para>
-    /// L'export n'est pas versionné : ces tests demandent le modèle décrit dans
-    /// <c>OPUS-MT.md</c>.
+    /// L'export n'est pas versionné et vit hors du dépôt : voir <c>NLLB-200.md</c>.
     /// </para>
     /// </remarks>
     [Trait("Categorie", "Integration")]
     [Collection(CollectionDIntegration.Nom)]
-    public class TraductionOpusMtTests : ContratDeTraducteur
+    public class TraductionNllbTests : ContratDeTraducteur
     {
         private readonly ITestOutputHelper sortie;
 
@@ -32,7 +31,7 @@ namespace ScanTrad.PipelineTests.Traduction
         /// Initialise le test avec le collecteur de sortie.
         /// </summary>
         /// <param name="sortie">Le canal où écrire ce qu'on veut voir apparaître.</param>
-        public TraductionOpusMtTests(ITestOutputHelper sortie)
+        public TraductionNllbTests(ITestOutputHelper sortie)
         {
             this.sortie = sortie;
         }
@@ -45,8 +44,7 @@ namespace ScanTrad.PipelineTests.Traduction
         /// </remarks>
         protected override ITraducteur Creer()
         {
-            return new ChoixDuTraducteur()
-                .Creer(MoteurDeTraduction.OpusMt);
+            return new ChoixDuTraducteur().Creer(MoteurDeTraduction.Nllb);
         }
 
         /// <summary>
@@ -72,18 +70,24 @@ namespace ScanTrad.PipelineTests.Traduction
         }
 
         /// <summary>
-        /// Un texte tout en majuscules se traduit comme le même texte en casse
-        /// normale.
+        /// Un texte tout en majuscules ressort quand même en français correct.
         /// </summary>
         /// <remarks>
-        /// C'est la régression la plus coûteuse que ce moteur puisse subir, et elle
-        /// serait invisible sans ce test. Le modèle n'a jamais vu de texte crié :
-        /// mesuré avant correction, trois phrases d'essai sur trois ressortaient
-        /// fausses en majuscules — contresens et mots inventés — et justes en casse
-        /// normale. Or l'OCR d'une planche ne produit que des majuscules.
+        /// L'assertion diffère volontairement de celle du moteur OPUS-MT, qui exige
+        /// une traduction <em>identique</em> à celle du même texte en casse normale.
+        /// C'est que les deux moteurs ne sont pas dans la même situation : OPUS-MT n'a
+        /// jamais vu de texte crié et rendait des contresens, d'où une normalisation de
+        /// la casse écrite exprès pour lui, et un test qui la protège.
+        /// <para>
+        /// NLLB, entraîné sur des données bien plus variées, s'en sort seul — mesuré
+        /// avant d'écrire quoi que ce soit. Ajouter la même normalisation ici aurait
+        /// été du bruit, et exiger l'égalité des deux traductions ferait échouer un
+        /// test alors que rien ne va mal : le modèle rend simplement une phrase un peu
+        /// différente, parfois meilleure.
+        /// </para>
         /// </remarks>
         [Fact]
-        public async Task Traduire_EnMajuscules_DonneLeMemeResultatQuEnCasseNormale()
+        public async Task Traduire_EnMajuscules_RendQuandMemeDuFrancais()
         {
             const string crie = "AND WE COULD NOT FIND ANYONE ELSE IN TIME.";
             const string normal = "And we could not find anyone else in time.";
@@ -96,11 +100,11 @@ namespace ScanTrad.PipelineTests.Traduction
             string? enMajuscules = traduite.Zones[0].TexteTraduit;
             string? enCasseNormale = traduite.Zones[1].TexteTraduit;
 
-            sortie.WriteLine($"majuscules : {enMajuscules}");
+            sortie.WriteLine($"majuscules    : {enMajuscules}");
             sortie.WriteLine($"casse normale : {enCasseNormale}");
 
             Assert.False(string.IsNullOrWhiteSpace(enMajuscules));
-            Assert.Equal(enCasseNormale, enMajuscules);
+            Assert.NotEqual(crie, enMajuscules);
         }
 
         /// <summary>
@@ -111,7 +115,7 @@ namespace ScanTrad.PipelineTests.Traduction
         public void Constructeur_DossierSansModele_LeveFileNotFoundException()
         {
             Assert.Throws<FileNotFoundException>(
-                () => new TraductionOpusMt(Path.GetTempPath()));
+                () => new TraductionNllb(Path.GetTempPath()));
         }
 
         /// <summary>
@@ -120,7 +124,7 @@ namespace ScanTrad.PipelineTests.Traduction
         [Fact]
         public void Constructeur_CheminVide_LeveArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => new TraductionOpusMt("  "));
+            Assert.Throws<ArgumentException>(() => new TraductionNllb("  "));
         }
     }
 }

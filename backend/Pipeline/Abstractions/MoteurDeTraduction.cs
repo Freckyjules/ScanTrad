@@ -21,6 +21,13 @@ namespace ScanTrad.Pipeline.Abstractions
         /// rapide, il tourne sur le processeur, mais traduit phrase par phrase sans
         /// mémoire d'une bulle à l'autre.
         /// </summary>
-        OpusMt
+        OpusMt,
+
+        /// <summary>
+        /// NLLB-200, modèle multilingue de Meta. Nettement plus lent — mesuré huit fois
+        /// le temps d'OPUS-MT par bulle, pour sept gigaoctets de modèle — mais il rend
+        /// un français plus fidèle et digère le texte tout en majuscules sans aide.
+        /// </summary>
+        Nllb
     }
 }

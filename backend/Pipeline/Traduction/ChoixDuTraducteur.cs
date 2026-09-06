@@ -1,5 +1,6 @@
 using ScanTrad.Pipeline.Abstractions;
-using ScanTrad.Pipeline.Traduction.OpusMt;
+using ScanTrad.Pipeline.Traduction.Moteurs.Nllb;
+using ScanTrad.Pipeline.Traduction.Moteurs.OpusMt;
 
 namespace ScanTrad.Pipeline.Traduction
 {
@@ -9,15 +10,19 @@ namespace ScanTrad.Pipeline.Traduction
     /// <remarks>
     /// Le dictionnaire des moteurs est monté dans le constructeur : la liste est
     /// close, elle se lit d'un coup d'œil, et ajouter un moteur revient à ajouter une
-    /// ligne. C'est aussi ce qui évite d'avoir à enregistrer quoi que ce soit depuis
-    /// l'extérieur.
+    /// ligne.
+    /// <para>
+    /// <b>Les emplacements des modèles sont écrits en dur</b>, et c'est provisoire.
+    /// Celui de NLLB est un chemin absolu propre à la machine de développement — son
+    /// export pèse sept gigaoctets et ne tenait pas sur le disque système. Le jour où
+    /// ce projet tournera ailleurs, ces chemins devront venir de la configuration.
+    /// </para>
     /// <para>
     /// Les valeurs sont des fonctions et non des traducteurs déjà construits. C'est le
-    /// seul écart avec un aiguillage ordinaire, et il est imposé par le coût : un
-    /// moteur local charge un demi-gigaoctet de modèle en un peu plus d'une seconde.
-    /// Tous les construire d'avance chargerait chaque modèle au démarrage, y compris
-    /// ceux dont personne ne se servira, et obligerait cette classe à les libérer.
-    /// Ici, rien n'est chargé tant que rien n'est demandé.
+    /// seul écart avec un aiguillage ordinaire, et il est imposé par le coût : NLLB
+    /// met sept secondes à se charger et occupe sept gigaoctets. Tous les construire
+    /// d'avance chargerait chaque modèle au démarrage, y compris ceux dont personne ne
+    /// se servira. Ici, rien n'est chargé tant que rien n'est demandé.
     /// </para>
     /// <para>
     /// Un moteur inconnu lève plutôt que de se rabattre sur un autre : il n'existe pas
@@ -27,6 +32,23 @@ namespace ScanTrad.Pipeline.Traduction
     /// </remarks>
     public class ChoixDuTraducteur
     {
+        #region Constantes
+
+        /// <summary>
+        /// Emplacement de l'export OPUS-MT. Voir le mémo du moteur pour le régénérer.
+        /// </summary>
+        private const string DossierOpusMt =
+            @"C:\Users\jules\Documents\GitHub\ScanTrad\backend\modeles\opus-mt-en-fr";
+
+        /// <summary>
+        /// Emplacement de l'export NLLB-200. Hors du dépôt : ses sept gigaoctets ne
+        /// tenaient pas sur le disque système.
+        /// </summary>
+        private const string DossierNllb =
+            @"E:\ScanTrad-modeles\nllb-200-distilled-600M";
+
+        #endregion
+
         #region Attributs
 
         private Dictionary<MoteurDeTraduction, Func<ITraducteur>> moteurs;
@@ -36,26 +58,15 @@ namespace ScanTrad.Pipeline.Traduction
         #region Constructeurs
 
         /// <summary>
-        /// Crée le choix des traducteurs et monte la liste des moteurs connus.
+        /// Crée le choix des traducteurs et monte la liste des moteurs connus. Aucun
+        /// modèle n'est lu à ce moment.
         /// </summary>
-        /// <param name="dossierOpusMt">
-        /// Dossier de l'export ONNX d'OPUS-MT. Il n'est lu qu'au moment où ce moteur
-        /// est réellement demandé.
-        /// </param>
-        /// <exception cref="ArgumentException">
-        /// Levée si <paramref name="dossierOpusMt"/> est vide.
-        /// </exception>
-        public ChoixDuTraducteur(string dossierOpusMt)
+        public ChoixDuTraducteur()
         {
-            if (string.IsNullOrWhiteSpace(dossierOpusMt))
-            {
-                throw new ArgumentException(
-                    "Le dossier du modèle OPUS-MT doit être renseigné.", nameof(dossierOpusMt));
-            }
-
             this.moteurs = new Dictionary<MoteurDeTraduction, Func<ITraducteur>>
             {
-                { MoteurDeTraduction.OpusMt, () => new TraductionOpusMt(dossierOpusMt) }
+                { MoteurDeTraduction.OpusMt, () => new TraductionOpusMt(DossierOpusMt) },
+                { MoteurDeTraduction.Nllb, () => new TraductionNllb(DossierNllb) }
             };
         }
 
