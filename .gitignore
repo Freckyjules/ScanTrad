@@ -73,6 +73,11 @@ secrets.json
 /models/
 *.onnx
 *.onnx.data
+
+# Le dossier entier, et pas seulement les poids : un modele exporte amene aussi
+# son tokeniseur et ses fichiers de configuration (.spm, vocab.json), qu'aucune
+# regle d'extension ne couvre et qui n'ont pas plus leur place ici.
+/backend/modeles/
 *.pt
 *.pth
 *.pdparams
