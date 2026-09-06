@@ -187,6 +187,25 @@ namespace ScanTrad.Pipeline.Traduction.Moteurs.Nllb
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// NLLB est entraîné sur des paires d'<em>une</em> phrase, son corpus ayant été
+        /// bâti par alignement automatique avec un filtrage strict. Donnée deux phrases,
+        /// il traduit la première, produit sa marque de fin, et laisse tomber la
+        /// seconde. Observé sur la planche d'essai : une bulle assemblée en deux
+        /// phrases ressortait amputée de moitié.
+        /// <para>
+        /// OPUS-MT s'en sort mieux — son corpus contient beaucoup de sous-titres, où un
+        /// segment porte volontiers plusieurs phrases. C'est une tolérance et non une
+        /// garantie : mesuré sur la même planche, il tronque lui aussi un bloc sur
+        /// sept. Le découpage lui profiterait.
+        /// </para>
+        /// </remarks>
+        protected override IReadOnlyList<string> Decouper(string texte)
+        {
+            return DecoupageEnPhrases.Decouper(texte);
+        }
+
+        /// <inheritdoc />
         protected override int? JetonImpose(int tour)
         {
             // Le tout premier jeton produit désigne la langue de sortie. Le laisser
