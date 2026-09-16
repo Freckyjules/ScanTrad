@@ -16,6 +16,7 @@
     <PackageReference Include="Sdcb.PaddleOCR" Version="3.3.1" />
     <PackageReference Include="Sdcb.PaddleOCR.Models.Local" Version="3.3.1" />
     <PackageReference Include="Sdcb.PaddleOCR.Models.LocalV5" Version="3.3.1" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

@@ -77,14 +77,19 @@ namespace ScanTrad.Pipeline.Models
 
         /// <summary>
         /// La hauteur d'une ligne du texte d'origine, en pixels, ou <c>null</c> si
-        /// elle n'a pas été mesurée. Sert de point de départ au rendu pour choisir sa
-        /// taille de police.
+        /// elle n'a pas été mesurée.
         /// </summary>
         /// <remarks>
         /// À ne pas confondre avec la hauteur de <see cref="Rectangle"/>, qui couvre
         /// le bloc entier — trois cents pixels pour six lignes. Le nombre de lignes
         /// d'origine étant perdu quand on recolle les textes, cette hauteur ne se
         /// retrouve pas autrement.
+        /// <para>
+        /// Sert de point de départ à la réécriture pour choisir sa taille de police :
+        /// le texte traduit part de la taille du texte d'origine, et ne rétrécit que
+        /// s'il ne tient plus dans la bulle. Voir
+        /// <see cref="ScanTrad.Pipeline.Abstractions.IReecrivainDeTexte"/>.
+        /// </para>
         /// </remarks>
         public double? HauteurDeLigne
         {
