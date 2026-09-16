@@ -14,7 +14,12 @@ namespace ScanTrad.Pipeline.Abstractions
     /// détection ni l'effacement, qui n'ont pas changé.
     /// <para>
     /// Une zone sans bulle n'est pas réécrite, pour la même raison qu'elle n'est pas
-    /// effacée : sans contour, il n'y a pas de place connue où poser le texte.
+    /// effacée : sans contour, il n'y a pas de place connue où poser le texte. La
+    /// bulle ne sert qu'à cette décision, en revanche : le texte se pose dans
+    /// <see cref="ZoneDeTexte.Rectangle"/> tel quel, pas dans le contour de la bulle.
+    /// C'est le cadrage (<see cref="IAjusteurDeRectangle"/>), en amont, qui a la charge
+    /// de maximiser ce rectangle dans la bulle ; la réécriture n'a pas à refaire ce
+    /// travail ni à rétrécir une deuxième fois avec une marge à elle.
     /// </para>
     /// <para>
     /// Une zone dont <see cref="ZoneDeTexte.TexteTraduit"/> vaut <c>null</c> n'est pas

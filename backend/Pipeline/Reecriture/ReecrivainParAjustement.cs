@@ -19,6 +19,15 @@ namespace ScanTrad.Pipeline.Reecriture
     /// arrivé ». GDI+ n'existe que sous Windows, ce qui n'ajoute aucune contrainte
     /// nouvelle : le pipeline en dépend déjà par ses autres paquets natifs.
     /// <para>
+    /// La boîte de texte est <see cref="ZoneDeTexte.Rectangle"/> tel quel, sans marge
+    /// intérieure : le contour de la bulle ne sert plus ici. Il sert déjà ailleurs
+    /// dans le pipeline — à l'effacement, et au cadrage qui maximise justement
+    /// <c>Rectangle</c> dans ce contour avant que la réécriture n'intervienne (voir
+    /// <c>IAjusteurDeRectangle</c>). Lui faire aussi porter la mise en page du texte
+    /// serait redondant, et une marge en plus de celle déjà prise par le cadrage
+    /// rétrécirait deux fois pour rien.
+    /// </para>
+    /// <para>
     /// La taille de départ vient de <see cref="ZoneDeTexte.HauteurDeLigne"/> — la
     /// hauteur d'une ligne du texte d'origine, mesurée à la lecture — convertie en
     /// taille de police par un ratio mesuré, et non déclaré : les métriques que GDI+
@@ -28,24 +37,20 @@ namespace ScanTrad.Pipeline.Reecriture
     /// rendu d'une lettre à une taille de référence, dont on mesure ensuite la
     /// hauteur d'encre réelle. Le français est presque toujours un peu plus long que
     /// l'anglais ou le japonais lu ; l'algorithme découpe donc le texte en lignes à
-    /// cette taille, et ne la réduit que si le résultat déborde de la hauteur de la
-    /// bulle — jamais pour l'agrandir.
+    /// cette taille, et ne la réduit que si le résultat déborde de la hauteur du
+    /// rectangle — jamais pour l'agrandir.
     /// </para>
     /// <para>
     /// Le découpage en lignes est glouton : un mot rejoint la ligne courante s'il y
-    /// tient, sinon il ouvre la ligne suivante. Un mot à lui seul plus large que la
-    /// bulle reste seul sur sa ligne même s'il déborde — le couper romprait le mot, ce
-    /// qui serait pire — et le format d'écriture ne le rogne pas : mieux vaut un
-    /// débordement visible qu'un mot amputé en silence.
+    /// tient, sinon il ouvre la ligne suivante. Un mot à lui seul plus large que le
+    /// rectangle reste seul sur sa ligne même s'il déborde — le couper romprait le
+    /// mot, ce qui serait pire — et le format d'écriture ne le rogne pas : mieux vaut
+    /// un débordement visible qu'un mot amputé en silence.
     /// </para>
     /// <para>
     /// Aucun texte n'est tronqué : si aucune taille au-dessus du plancher ne suffit
     /// (en pratique, ça ne devrait jamais arriver), le meilleur découpage possible est
-    /// rendu à la taille plancher, quitte à déborder de la bulle.
-    /// </para>
-    /// <para>
-    /// Une marge intérieure, proportionnelle à la taille de la bulle, garde le texte à
-    /// distance du trait de contour plutôt que de l'y coller.
+    /// rendu à la taille plancher, quitte à déborder du rectangle.
     /// </para>
     /// </remarks>
     [SupportedOSPlatform("windows")]
@@ -55,7 +60,6 @@ namespace ScanTrad.Pipeline.Reecriture
 
         private const float TailleMinimale = 8f;
         private const float PasDeReduction = 2f;
-        private const float MargeRelative = 0.12f;
 
         #endregion
 
@@ -172,8 +176,8 @@ namespace ScanTrad.Pipeline.Reecriture
                             "hauteur de ligne mesurée. Elle aurait dû être renseignée à la lecture.");
                     }
 
-                    EcrireDansLaBulle(
-                        dessin, zone.TexteTraduit, zone.HauteurDeLigne.Value, ratioCellule, Boite(zone.Bulle));
+                    EcrireDansLeRectangle(
+                        dessin, zone.TexteTraduit, zone.HauteurDeLigne.Value, ratioCellule, Boite(zone.Rectangle));
                 }
             }
 
@@ -270,27 +274,19 @@ namespace ScanTrad.Pipeline.Reecriture
             return maxY >= minY ? maxY - minY : 0;
         }
 
-        private static RectangleF Boite(Bulle bulle)
+        private static RectangleF Boite(Quadrilatere rectangle)
         {
-            double minX = bulle.Contour.Min(point => point.X);
-            double maxX = bulle.Contour.Max(point => point.X);
-            double minY = bulle.Contour.Min(point => point.Y);
-            double maxY = bulle.Contour.Max(point => point.Y);
-
-            double largeur = maxX - minX;
-            double hauteur = maxY - minY;
-
-            double margeX = largeur * MargeRelative;
-            double margeY = hauteur * MargeRelative;
-
+            // Le rectangle est déjà celui qu'un cadrage en amont a, si possible,
+            // maximisé dans le contour de la bulle : ni marge ni rétrécissement
+            // supplémentaire ici, ce serait rétrécir deux fois pour rien.
             return new RectangleF(
-                (float)(minX + margeX),
-                (float)(minY + margeY),
-                (float)Math.Max(1, largeur - (2 * margeX)),
-                (float)Math.Max(1, hauteur - (2 * margeY)));
+                (float)rectangle.HautGauche.X,
+                (float)rectangle.HautGauche.Y,
+                (float)rectangle.Largeur,
+                (float)rectangle.Hauteur);
         }
 
-        private void EcrireDansLaBulle(
+        private void EcrireDansLeRectangle(
             Graphics dessin, string texte, double hauteurDeLigne, float ratioCellule, RectangleF boite)
         {
             float depart = (float)Math.Max(TailleMinimale, hauteurDeLigne / ratioCellule);

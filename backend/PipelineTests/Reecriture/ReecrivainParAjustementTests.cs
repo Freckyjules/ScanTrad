@@ -57,15 +57,41 @@ namespace ScanTrad.PipelineTests.Reecriture
 
             Assert.True(minY <= maxY, "Aucune encre détectée malgré un texte long.");
 
-            // Marge de 12 % (voir MargeRelative en production) sur une bulle de 160 px
-            // de haut à partir de y=20 : le bas utile est vers 20+160-19,2 = 160,8.
-            // Une petite tolérance absorbe l'antialiasing du contour des lettres.
-            double basDeLaBoite = 20 + 160 - (160 * 0.12);
+            // Aucune marge : la boîte de texte est le rectangle tel quel (20..180),
+            // pas le contour de la bulle. Une petite tolérance absorbe
+            // l'antialiasing du contour des lettres.
+            double basDeLaBoite = 20 + 160;
 
             Assert.True(
                 maxY <= basDeLaBoite + 5,
                 $"L'encre descend jusqu'à {maxY}px, au-delà du bas de la boîte ({basDeLaBoite:0}px) : " +
                 "le texte mord le bas de la bulle au lieu d'avoir réduit sa police.");
+        }
+
+        /// <summary>
+        /// Le texte se pose dans le rectangle, pas dans le contour de la bulle : une
+        /// bulle bien plus grande que le rectangle ne doit pas laisser l'encre
+        /// déborder du rectangle.
+        /// </summary>
+        /// <remarks>
+        /// C'est le cadrage, en amont, qui a la charge de maximiser le rectangle dans
+        /// la bulle. La réécriture n'a plus à regarder le contour de la bulle du
+        /// tout : ce test construit délibérément une bulle bien plus grande que le
+        /// rectangle pour vérifier qu'elle n'influe pas sur la mise en page.
+        /// </remarks>
+        [Fact]
+        public void Reecrire_BulleBienPlusGrandeQueLeRectangle_NeDeborsePasDuRectangle()
+        {
+            ZoneDeTexte zone = ZoneAvecBulle(180, 180, 40, 40, "I", 30);
+            zone.Bulle = new Bulle(Carre(0, 0, 400, 400));
+
+            Planche composee = new ReecrivainParAjustement().Reecrire(PlancheBlanche(zone));
+
+            (int minY, int maxY) = EtenduesVerticalesDeLEncre(composee);
+
+            Assert.True(minY <= maxY, "Aucune encre détectée.");
+            Assert.True(minY >= 175, $"L'encre commence à {minY}px, au-dessus du rectangle (180px).");
+            Assert.True(maxY <= 225, $"L'encre descend à {maxY}px, en dessous du rectangle (220px).");
         }
 
         /// <summary>
@@ -274,6 +300,17 @@ namespace ScanTrad.PipelineTests.Reecriture
             });
 
             return zone;
+        }
+
+        private static Coordonnee[] Carre(double x, double y, double largeur, double hauteur)
+        {
+            return new[]
+            {
+                new Coordonnee(x, y),
+                new Coordonnee(x + largeur, y),
+                new Coordonnee(x + largeur, y + hauteur),
+                new Coordonnee(x, y + hauteur)
+            };
         }
 
         private static int SommeMinimale(Planche planche)

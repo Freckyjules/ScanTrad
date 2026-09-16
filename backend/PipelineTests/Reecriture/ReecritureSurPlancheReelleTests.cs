@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using ScanTrad.Pipeline.Abstractions;
+using ScanTrad.Pipeline.Cadrage;
 using ScanTrad.Pipeline.Effacement;
 using ScanTrad.Pipeline.Models;
 using ScanTrad.Pipeline.OrdreDeLecture;
@@ -9,9 +10,9 @@ using ScanTrad.Pipeline.Traduction;
 namespace ScanTrad.PipelineTests.Reecriture
 {
     /// <summary>
-    /// Enchaîne lecture, ordre de lecture, traduction, effacement et réécriture sur
-    /// une vraie planche, et attache l'image composée au test pour qu'un humain aille
-    /// la regarder.
+    /// Enchaîne lecture, cadrage, ordre de lecture, traduction, effacement et
+    /// réécriture sur une vraie planche, et attache l'image composée au test pour
+    /// qu'un humain aille la regarder.
     /// </summary>
     /// <remarks>
     /// La traduction employée est une vraie traduction, pas un texte de démonstration
@@ -19,6 +20,12 @@ namespace ScanTrad.PipelineTests.Reecriture
     /// qu'un moteur produit réellement — longueur imprévisible, ponctuation, parfois
     /// une réplique qu'il n'a pas su traduire. Un texte inventé aurait aussi fini par
     /// se répéter d'une bulle à l'autre, faute d'autant de phrases que de bulles.
+    /// <para>
+    /// Le cadrage vient avant l'ordre de lecture, et pas après : l'ordonnanceur trie
+    /// sur le centre du rectangle de chaque zone, et c'est justement ce centre que le
+    /// cadrage peut déplacer en maximisant le rectangle dans sa bulle. Rejouer l'ordre
+    /// sur des rectangles déjà cadrés est le seul enchaînement qui a du sens.
+    /// </para>
     /// <para>
     /// Le moteur est un paramètre, comme pour <c>TraductionSurPlancheReelleTests</c> :
     /// l'explorateur affiche <c>(moteur: OpusMt)</c> et <c>(moteur: Nllb)</c>, et on
@@ -65,7 +72,10 @@ namespace ScanTrad.PipelineTests.Reecriture
         public async Task Reecrire_ApresTraduction_DonneLImageComposeeAVoir(MoteurDeTraduction moteur)
         {
             // Cette édition est retournée : elle se lit de gauche à droite.
-            Planche ordonnee = new OrdonnanceurDeZones().Ordonner(lecture.Copier(SensDeLecture.GaucheADroite));
+            Planche cadree = new AjusteurDeRectangleParRasterisation().Ajuster(
+                lecture.Copier(SensDeLecture.GaucheADroite));
+
+            Planche ordonnee = new OrdonnanceurDeZones().Ordonner(cadree);
 
             using ITraducteur traducteur = new ChoixDuTraducteur().Creer(moteur);
 
