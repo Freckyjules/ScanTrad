@@ -5,8 +5,9 @@ namespace ScanTrad.PipelineTests
     /// </summary>
     /// <remarks>
     /// La planche est recopiée à côté du binaire de test par le fichier projet. Le
-    /// modèle, lui, pèse une centaine de mégaoctets et n'est pas versionné : il se
-    /// cherche en remontant l'arborescence jusqu'à <c>backend/modeles/</c>.
+    /// modèle, lui, pèse une centaine de mégaoctets et n'est pas versionné : sa
+    /// localisation passe par <see cref="ScanTrad.Pipeline.LocalisateurDeModele"/>,
+    /// la même que celle utilisée pour les modèles de traduction.
     /// </remarks>
     public static class PlancheDEssai
     {
@@ -14,8 +15,6 @@ namespace ScanTrad.PipelineTests
         /// Nom de la planche d'exemple.
         /// </summary>
         public const string Nom = "Akashic.jpg";
-
-        private const string NomDuModele = "comictextdetector.onnx";
 
         /// <summary>
         /// Charge les octets de la planche d'exemple.
@@ -39,32 +38,16 @@ namespace ScanTrad.PipelineTests
         }
 
         /// <summary>
-        /// Retrouve le fichier du modèle comic-text-detector en remontant depuis le
-        /// dossier d'exécution.
+        /// Retrouve le fichier du modèle comic-text-detector.
         /// </summary>
         /// <returns>Le chemin complet du modèle.</returns>
         /// <exception cref="FileNotFoundException">
-        /// Levée si le modèle n'a pas été déposé dans <c>backend/modeles/</c>.
+        /// Levée si la clé <c>detecteur</c> n'est pas renseignée dans
+        /// <c>modeles.local.json</c>.
         /// </exception>
         public static string TrouverLeModele()
         {
-            DirectoryInfo? dossier = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (dossier != null)
-            {
-                string candidat = Path.Combine(dossier.FullName, "modeles", NomDuModele);
-
-                if (File.Exists(candidat))
-                {
-                    return candidat;
-                }
-
-                dossier = dossier.Parent;
-            }
-
-            throw new FileNotFoundException(
-                $"Le modèle {NomDuModele} est introuvable. Le déposer dans backend/modeles/ — " +
-                "il n'est pas versionné, il pèse une centaine de mégaoctets.");
+            return ScanTrad.Pipeline.LocalisateurDeModele.Localiser("detecteur");
         }
     }
 }

@@ -12,10 +12,9 @@ namespace ScanTrad.Pipeline.Traduction
     /// close, elle se lit d'un coup d'œil, et ajouter un moteur revient à ajouter une
     /// ligne.
     /// <para>
-    /// <b>Les emplacements des modèles sont écrits en dur</b>, et c'est provisoire.
-    /// Celui de NLLB est un chemin absolu propre à la machine de développement — son
-    /// export pèse sept gigaoctets et ne tenait pas sur le disque système. Le jour où
-    /// ce projet tournera ailleurs, ces chemins devront venir de la configuration.
+    /// Les emplacements des modèles viennent de <see cref="LocalisateurDeModele"/>, qui
+    /// les lit dans <c>modeles.local.json</c> (non versionné, propre à chaque
+    /// machine) — aucun chemin n'est écrit en dur ni deviné.
     /// </para>
     /// <para>
     /// Les valeurs sont des fonctions et non des traducteurs déjà construits. C'est le
@@ -32,23 +31,6 @@ namespace ScanTrad.Pipeline.Traduction
     /// </remarks>
     public class ChoixDuTraducteur
     {
-        #region Constantes
-
-        /// <summary>
-        /// Emplacement de l'export OPUS-MT. Voir le mémo du moteur pour le régénérer.
-        /// </summary>
-        private const string DossierOpusMt =
-            @"C:\Users\jules\Documents\GitHub\ScanTrad\backend\modeles\opus-mt-en-fr";
-
-        /// <summary>
-        /// Emplacement de l'export NLLB-200. Hors du dépôt : ses sept gigaoctets ne
-        /// tenaient pas sur le disque système.
-        /// </summary>
-        private const string DossierNllb =
-            @"E:\ScanTrad-modeles\nllb-200-distilled-600M";
-
-        #endregion
-
         #region Attributs
 
         private Dictionary<MoteurDeTraduction, Func<ITraducteur>> moteurs;
@@ -65,8 +47,8 @@ namespace ScanTrad.Pipeline.Traduction
         {
             this.moteurs = new Dictionary<MoteurDeTraduction, Func<ITraducteur>>
             {
-                { MoteurDeTraduction.OpusMt, () => new TraductionOpusMt(DossierOpusMt) },
-                { MoteurDeTraduction.Nllb, () => new TraductionNllb(DossierNllb) }
+                { MoteurDeTraduction.OpusMt, () => new TraductionOpusMt(LocalisateurDeModele.Localiser("opusMt")) },
+                { MoteurDeTraduction.Nllb, () => new TraductionNllb(LocalisateurDeModele.Localiser("nllb")) }
             };
         }
 

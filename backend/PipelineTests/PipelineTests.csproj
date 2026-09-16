@@ -36,4 +36,16 @@
     <None Update="images\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- modeles.local.json (non versionné, voir modeles.local.json.example) est
+       recopié à côté du binaire de test pour la même raison : LocalisateurDeModele
+       le lit là, sans chercher ailleurs. La condition évite un échec de build sur
+       un clone qui ne l'a pas encore créé. -->
+  <ItemGroup>
+    <None
+      Include="..\modeles.local.json"
+      Link="modeles.local.json"
+      CopyToOutputDirectory="PreserveNewest"
+      Condition="Exists('..\modeles.local.json')" />
+  </ItemGroup>
+
 </Project>
