@@ -13,32 +13,52 @@ traduction.
 
 ## Aperçu
 
-Sur une planche réelle (`Akashic.jpg`), sans aucune retouche manuelle :
+Sur une planche réelle (`Akashic.jpg`), sans aucune retouche manuelle. Ces six
+images sont produites par la suite de tests elle-même (voir [Tests](#tests)) :
+ce ne sont pas des captures retouchées, mais l'état réel du pipeline à chaque
+étape.
 
-| 1. Planche d'origine | 2. Détection des blocs |
-|:---:|:---:|
-| ![Planche d'origine](docs/images/apercu-1-original.jpg) | ![Détection](docs/images/apercu-2-detection.jpg) |
-| **3. Ordre de lecture reconstruit** | **4. Bulles nettoyées** |
-| ![Ordre de lecture](docs/images/apercu-3-ordre-lecture.jpg) | ![Nettoyage](docs/images/apercu-4-nettoyage.jpg) |
+**1. Planche d'origine**
 
-**5. Planche composée — texte français réécrit dans les bulles**
+![Planche d'origine](docs/images/apercu-1-original.jpg)
 
-![Composition finale](docs/images/apercu-5-composition.jpg)
+**2. Détection des blocs**
 
-- **Détection** — vert : rectangle du bloc de texte · rouge : contour de la
-  bulle reconstruit · bleu : rang.
-- **Ordre de lecture** — le chemin magenta relie les blocs dans l'ordre où un
-  lecteur les lirait, calculé automatiquement.
-- **Nettoyage** — chaque bulle est repeinte avec la couleur de fond mesurée en
-  son intérieur, prête à recevoir le texte traduit.
-- **Composition** — le texte traduit (ici par NLLB-200) est réécrit dans le
-  rectangle de chaque zone, déjà maximisé dans sa bulle par le cadrage ; sa
-  taille part de celle du texte d'origine et ne réduit que si la traduction
-  déborde.
+Vert : rectangle du bloc de texte détecté par le modèle ONNX · rouge : contour
+de la bulle reconstruit · bleu : rang de détection.
 
-Ces cinq images sont produites par la suite de tests elle-même (voir
-[Tests](#tests)) : ce ne sont pas des captures retouchées, mais l'état réel du
-pipeline à chaque étape.
+![Détection](docs/images/apercu-2-detection.jpg)
+
+**3. Cadrage du rectangle**
+
+Orange : rectangle d'origine — souvent trop étroit sur une bulle isolée, ou,
+sur deux bulles collées assemblées en une seule zone, débordant des deux à la
+fois. Vert : rectangle maximisé dans le contour rouge de la bulle, sans jamais
+le dépasser.
+
+![Cadrage](docs/images/apercu-3-cadrage.jpg)
+
+**4. Ordre de lecture**
+
+Le chemin magenta relie les blocs dans l'ordre où un lecteur les lirait,
+calculé automatiquement à partir des rectangles cadrés.
+
+![Ordre de lecture](docs/images/apercu-4-ordre-lecture.jpg)
+
+**5. Nettoyage**
+
+Chaque bulle est repeinte avec la couleur de fond mesurée en son intérieur,
+prête à recevoir le texte traduit.
+
+![Nettoyage](docs/images/apercu-5-nettoyage.jpg)
+
+**6. Composition finale**
+
+Le texte traduit (ici par NLLB-200) est réécrit dans le rectangle cadré de
+chaque zone ; sa taille part de celle du texte d'origine et ne réduit que si
+la traduction déborde.
+
+![Composition finale](docs/images/apercu-6-composition.jpg)
 
 ## Le principe
 
