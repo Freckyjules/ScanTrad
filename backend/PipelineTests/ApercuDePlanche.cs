@@ -13,10 +13,12 @@ namespace ScanTrad.PipelineTests
     /// presque rien — leur vrai produit est cette image.
     /// <para>
     /// Le numéro posé sur chaque bloc est son rang de lecture dès qu'il est calculé,
-    /// et son rang de détection sinon. Quand toutes les zones portent un rang, le
-    /// chemin qui les relie est tracé par-dessus : c'est ce qui rend un ordre de
-    /// lecture vérifiable d'un coup d'œil, là où une liste de textes demande de
-    /// retrouver soi-même quelle bulle est laquelle.
+    /// et son rang de détection sinon — sauf à demander <c>avecNumeros: false</c>,
+    /// pour un aperçu de détection brute où ce rang n'a encore aucun sens à montrer.
+    /// Quand toutes les zones portent un rang, le chemin qui les relie est tracé
+    /// par-dessus : c'est ce qui rend un ordre de lecture vérifiable d'un coup d'œil,
+    /// là où une liste de textes demande de retrouver soi-même quelle bulle est
+    /// laquelle.
     /// </para>
     /// </remarks>
     public static class ApercuDePlanche
@@ -44,15 +46,19 @@ namespace ScanTrad.PipelineTests
         /// Le nom sous lequel la pièce jointe apparaît dans l'explorateur de tests.
         /// </param>
         /// <param name="planche">La planche à représenter, avec ses zones.</param>
+        /// <param name="avecNumeros">
+        /// Si <c>false</c>, aucun numéro ni chemin n'est dessiné — utile pour un
+        /// aperçu de détection brute, avant que l'ordre de lecture n'ait de sens.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// Levée si <paramref name="planche"/> vaut <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentException">
         /// Levée si l'image de la planche n'est pas décodable.
         /// </exception>
-        public static void Attacher(string nom, Planche planche)
+        public static void Attacher(string nom, Planche planche, bool avecNumeros = true)
         {
-            TestContext.Current.AddAttachment(nom, Dessiner(planche), "image/png");
+            TestContext.Current.AddAttachment(nom, Dessiner(planche, avecNumeros), "image/png");
         }
 
         /// <summary>
@@ -60,6 +66,10 @@ namespace ScanTrad.PipelineTests
         /// son numéro, et le chemin de lecture si les rangs sont connus.
         /// </summary>
         /// <param name="planche">La planche à représenter, avec ses zones.</param>
+        /// <param name="avecNumeros">
+        /// Si <c>false</c>, aucun numéro ni chemin n'est dessiné — utile pour un
+        /// aperçu de détection brute, avant que l'ordre de lecture n'ait de sens.
+        /// </param>
         /// <returns>L'image annotée, encodée en PNG.</returns>
         /// <exception cref="ArgumentNullException">
         /// Levée si <paramref name="planche"/> vaut <c>null</c>.
@@ -67,7 +77,7 @@ namespace ScanTrad.PipelineTests
         /// <exception cref="ArgumentException">
         /// Levée si l'image de la planche n'est pas décodable.
         /// </exception>
-        public static byte[] Dessiner(Planche planche)
+        public static byte[] Dessiner(Planche planche, bool avecNumeros = true)
         {
             if (planche == null)
             {
@@ -82,9 +92,12 @@ namespace ScanTrad.PipelineTests
                     "L'image de la planche n'est pas décodable.", nameof(planche));
             }
 
-            // Le chemin passe dessous : il relie des centres, et les cadres doivent
-            // rester lisibles par-dessus.
-            DessinerLeChemin(dessin, planche.Zones);
+            if (avecNumeros)
+            {
+                // Le chemin passe dessous : il relie des centres, et les cadres
+                // doivent rester lisibles par-dessus.
+                DessinerLeChemin(dessin, planche.Zones);
+            }
 
             for (int rang = 0; rang < planche.Zones.Count; rang++)
             {
@@ -92,7 +105,11 @@ namespace ScanTrad.PipelineTests
 
                 DessinerLaBulle(dessin, zone.Bulle);
                 DessinerLeRectangle(dessin, zone.Rectangle);
-                DessinerLeNumero(dessin, zone.Rectangle, zone.OrdreDeLecture ?? rang);
+
+                if (avecNumeros)
+                {
+                    DessinerLeNumero(dessin, zone.Rectangle, zone.OrdreDeLecture ?? rang);
+                }
             }
 
             return dessin.ImEncode(".png");

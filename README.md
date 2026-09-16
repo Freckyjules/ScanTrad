@@ -36,7 +36,7 @@ La planche telle qu'elle arrive, avant tout traitement.
 **2. Détection des blocs**
 
 Vert : rectangle du bloc de texte détecté par le modèle ONNX · rouge : contour
-de la bulle reconstruit · bleu : rang de détection.
+de la bulle reconstruit.
 
 </td>
 </tr>

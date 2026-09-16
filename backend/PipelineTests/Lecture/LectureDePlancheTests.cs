@@ -169,11 +169,12 @@ namespace ScanTrad.PipelineTests.Lecture
         [Fact]
         public void Lecture_AttacheUnApercuDeLaDetection()
         {
-            ApercuDePlanche.Attacher("apercu-detection", lecture.Lue);
+            // Sans numéro ni chemin : l'ordre de lecture n'a pas encore de sens à ce
+            // stade, seul le détecteur a parlé.
+            ApercuDePlanche.Attacher("apercu-detection", lecture.Lue, avecNumeros: false);
 
             sortie.WriteLine(
-                "Aperçu attaché : vert = rectangle du bloc, rouge = contour de la bulle, " +
-                "bleu = rang de détection.");
+                "Aperçu attaché : vert = rectangle du bloc, rouge = contour de la bulle.");
         }
 
         private static bool MemeContour(Bulle une, Bulle autre)

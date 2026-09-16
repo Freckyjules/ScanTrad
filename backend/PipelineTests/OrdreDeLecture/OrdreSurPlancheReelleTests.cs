@@ -1,3 +1,4 @@
+using ScanTrad.Pipeline.Cadrage;
 using ScanTrad.Pipeline.Models;
 using ScanTrad.Pipeline.OrdreDeLecture;
 
@@ -10,8 +11,8 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
     /// <remarks>
     /// La lecture ne se refait pas ici : elle vient de
     /// <see cref="LectureDeLaPlancheDEssai"/>, partagée par toute la collection
-    /// d'intégration. L'ordonnancement, lui, n'est que de la géométrie — il ne coûte
-    /// rien et n'a pas besoin de l'image.
+    /// d'intégration. Le cadrage et l'ordonnancement, eux, ne sont que de la
+    /// géométrie — ils ne coûtent rien et n'ont pas besoin de l'image.
     /// <para>
     /// Chaque cas travaille sur une <see cref="LectureDeLaPlancheDEssai.Copier"/> et
     /// non sur les zones partagées, parce que l'ordonnanceur écrit le rang dans les
@@ -56,9 +57,15 @@ namespace ScanTrad.PipelineTests.OrdreDeLecture
         {
             Planche lue = lecture.Copier(sens);
 
+            // Le cadrage vient avant l'ordre dans le pipeline réel : l'ordonnanceur
+            // trie sur le centre du rectangle, et c'est ce centre que le cadrage peut
+            // déplacer. Le sauter donnerait un aperçu qui ne montre pas ce que
+            // l'ordonnanceur voit vraiment.
+            Planche cadree = new AjusteurDeRectangleParRasterisation().Ajuster(lue);
+
             // Le sens de lecture vient de la planche, pas d'un réglage de
             // l'ordonnanceur : la même instance traite les deux sens.
-            Planche ordonnee = new OrdonnanceurDeZones().Ordonner(lue);
+            Planche ordonnee = new OrdonnanceurDeZones().Ordonner(cadree);
             IReadOnlyList<ZoneDeTexte> ordre = ordonnee.Zones;
 
             Assert.Equal(lue.Zones.Count, ordre.Count);
