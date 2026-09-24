@@ -41,8 +41,12 @@ namespace ScanTrad.Infrastructure.Data
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
                 entity.Property(u => u.Username).IsRequired().HasMaxLength(20);
+                entity.Property(u => u.NormalizedUsername).IsRequired().HasMaxLength(20);
                 entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(200);
-                entity.HasIndex(u => u.Username).IsUnique();
+
+                // L'unicité porte sur le nom normalisé : « jules » et « Jules » ne
+                // peuvent pas coexister, même inscrits au même instant.
+                entity.HasIndex(u => u.NormalizedUsername).IsUnique();
             });
         }
 

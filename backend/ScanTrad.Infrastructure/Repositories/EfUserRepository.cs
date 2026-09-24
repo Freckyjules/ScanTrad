@@ -44,7 +44,11 @@ namespace ScanTrad.Infrastructure.Repositories
         /// <inheritdoc/>
         public async Task<bool> ExistsByUsernameAsync(string username)
         {
-            return await context.Users.AnyAsync(u => u.Username == username);
+            // Normalisé ici, en C#, une seule fois : la base compare alors directement
+            // avec l'index, sans convertir chaque ligne.
+            string normalizedUsername = User.NormalizeUsername(username);
+
+            return await context.Users.AnyAsync(u => u.NormalizedUsername == normalizedUsername);
         }
 
         #endregion

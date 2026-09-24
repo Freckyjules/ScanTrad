@@ -16,6 +16,7 @@ namespace ScanTrad.Domain.Repositories
 
         /// <summary>
         /// Vérifie si un utilisateur existe déjà dans la base de données en fonction de son nom d'utilisateur.
+        /// La comparaison ignore les majuscules : « Jules » trouve le compte « jules ».
         /// </summary>
         /// <param name="username"> Le nom d'utilisateur à vérifier. </param>
         /// <returns> true si l'utilisateur existe, false sinon. </returns>

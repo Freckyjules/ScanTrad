@@ -82,18 +82,39 @@ namespace ScanTrad.IntegrationTests.Controllers
         }
 
         /// <summary>
-        /// Le nom tient compte des majuscules : « jules » puis « Jules » donnent deux
-        /// comptes distincts.
+        /// Le nom ne tient pas compte des majuscules : « jules » puis « JULES » est
+        /// refusé comme un nom déjà pris.
         /// </summary>
         [Fact]
-        public async Task Register_MemeNomAvecUneMajuscule_CreeUnSecondCompte()
+        public async Task Register_MemeNomAvecDAutresMajuscules_Renvoie409()
         {
             string nom = NomInedit();
             await Inscrire(nom, MotDePasseValide);
 
             HttpResponseMessage reponse = await Inscrire(nom.ToUpperInvariant(), MotDePasseValide);
 
-            Assert.Equal(HttpStatusCode.Created, reponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, reponse.StatusCode);
+            Assert.Equal("User.UsernameTaken", await CodeDErreur(reponse));
+        }
+
+        /// <summary>
+        /// Le nom est conservé tel qu'il a été saisi, majuscules comprises, et sa forme
+        /// normalisée (tout en majuscules) est enregistrée à côté.
+        /// </summary>
+        [Fact]
+        public async Task Register_NomAvecDesMajuscules_ConserveLeNomSaisiEtEnregistreSaFormeNormalisee()
+        {
+            string nom = "Ab" + Guid.NewGuid().ToString("N")[..10];
+
+            await Inscrire(nom, MotDePasseValide);
+
+            using IServiceScope scope = api.Services.CreateScope();
+            ScanTradDbContext contexte = scope.ServiceProvider.GetRequiredService<ScanTradDbContext>();
+            User enregistre = await contexte.Users.SingleAsync(
+                u => u.Username == nom, TestContext.Current.CancellationToken);
+
+            Assert.Equal(nom, enregistre.Username);
+            Assert.Equal(nom.ToUpperInvariant(), enregistre.NormalizedUsername);
         }
 
         /// <summary>

@@ -9,7 +9,7 @@ Content-Type: application/json
   "password": "motdepasse1"
 }
 
-### Même nom avec une majuscule : 201, compte distinct de "jules"
+### Même nom avec une majuscule : 409, "Jules" et "jules" sont le même compte
 POST {{ScanTrad.Api_HostAddress}}/api/user/register
 Content-Type: application/json
 
