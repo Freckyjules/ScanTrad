@@ -42,3 +42,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+/// <summary>
+/// Point d'entrée de l'API. Déclaré public pour que les tests d'intégration
+/// puissent démarrer l'application avec <c>WebApplicationFactory&lt;Program&gt;</c>.
+/// </summary>
+public partial class Program
+{
+}
