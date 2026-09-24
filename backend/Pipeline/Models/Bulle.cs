@@ -19,46 +19,6 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
-        #region Constructeurs
-
-        /// <summary>
-        /// Initialise une bulle sans contour, à remplir point par point.
-        /// </summary>
-        public Bulle()
-        {
-            contour = new List<Coordonnee>();
-        }
-
-        /// <summary>
-        /// Initialise une bulle à partir des points de son contour, dans l'ordre où
-        /// ils se suivent le long du pourtour. Le dernier point rejoint le premier :
-        /// il n'y a pas à le répéter.
-        /// </summary>
-        /// <param name="points">Les points du contour, au moins trois.</param>
-        /// <exception cref="ArgumentNullException">
-        /// Levée si <paramref name="points"/> vaut <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Levée si <paramref name="points"/> contient moins de trois points, un
-        /// polygone n'ayant pas de sens en deçà.
-        /// </exception>
-        public Bulle(IEnumerable<Coordonnee> points)
-        {
-            if (points == null)
-            {
-                throw new ArgumentNullException(nameof(points));
-            }
-
-            contour = new List<Coordonnee>(points);
-
-            if (contour.Count < 3)
-            {
-                throw new ArgumentException("Un contour de bulle demande au moins trois points.", nameof(points));
-            }
-        }
-
-        #endregion
-
         #region Propriétés
 
         /// <summary>
@@ -94,6 +54,46 @@ namespace ScanTrad.Pipeline.Models
                 }
 
                 return new Coordonnee(sommeX / contour.Count, sommeY / contour.Count);
+            }
+        }
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise une bulle sans contour, à remplir point par point.
+        /// </summary>
+        public Bulle()
+        {
+            contour = new List<Coordonnee>();
+        }
+
+        /// <summary>
+        /// Initialise une bulle à partir des points de son contour, dans l'ordre où
+        /// ils se suivent le long du pourtour. Le dernier point rejoint le premier :
+        /// il n'y a pas à le répéter.
+        /// </summary>
+        /// <param name="points">Les points du contour, au moins trois.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Levée si <paramref name="points"/> vaut <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Levée si <paramref name="points"/> contient moins de trois points, un
+        /// polygone n'ayant pas de sens en deçà.
+        /// </exception>
+        public Bulle(IEnumerable<Coordonnee> points)
+        {
+            if (points == null)
+            {
+                throw new ArgumentNullException(nameof(points));
+            }
+
+            contour = new List<Coordonnee>(points);
+
+            if (contour.Count < 3)
+            {
+                throw new ArgumentException("Un contour de bulle demande au moins trois points.", nameof(points));
             }
         }
 

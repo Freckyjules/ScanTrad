@@ -14,6 +14,28 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Abscisse en pixels, mesurée depuis le bord gauche de l'image.
+        /// </summary>
+        public double X
+        {
+            get { return x; }
+            set { x = value; }
+        }
+
+        /// <summary>
+        /// Ordonnée en pixels, mesurée depuis le bord haut de l'image.
+        /// </summary>
+        public double Y
+        {
+            get { return y; }
+            set { y = value; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -34,28 +56,6 @@ namespace ScanTrad.Pipeline.Models
         {
             this.x = x;
             this.y = y;
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Abscisse en pixels, mesurée depuis le bord gauche de l'image.
-        /// </summary>
-        public double X
-        {
-            get { return x; }
-            set { x = value; }
-        }
-
-        /// <summary>
-        /// Ordonnée en pixels, mesurée depuis le bord haut de l'image.
-        /// </summary>
-        public double Y
-        {
-            get { return y; }
-            set { y = value; }
         }
 
         #endregion

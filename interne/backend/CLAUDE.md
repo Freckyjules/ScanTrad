@@ -12,12 +12,12 @@ Ce dossier ne contient que du C#. Ces règles s'appliquent à **toutes les class
 |---|---|
 | `Constantes` | les `const` et les `static readonly` |
 | `Attributs` | les variables privées de la classe |
-| `Constructeurs` | tous les constructeurs |
 | `Propriétés` | toutes les propriétés, y compris celles qui sont calculées |
+| `Constructeurs` | tous les constructeurs |
 | `Méthodes` | les méthodes publiques |
 | `Méthodes privées` | les méthodes d'aide internes |
 
-Une classe qui n'aurait que des champs et des propriétés n'écrit donc que `Attributs`, `Constructeurs` et `Propriétés`.
+Une classe qui n'aurait que des champs et des propriétés n'écrit donc que `Attributs`, `Propriétés` et `Constructeurs`.
 
 **Deux exceptions, sans aucune région :**
 - les **interfaces**, qui n'ont ni champ ni constructeur ;
@@ -37,18 +37,6 @@ public class Artist
 
     #endregion
 
-    #region Constructeurs
-
-    /// <summary>
-    /// Initialise un nouvel artiste avec des valeurs par défaut.
-    /// </summary>
-    public Artist()
-    {
-        name = string.Empty;
-    }
-
-    #endregion
-
     #region Propriétés
 
     /// <summary>
@@ -58,6 +46,18 @@ public class Artist
     {
         get { return name; }
         set { name = value; }
+    }
+
+    #endregion
+
+    #region Constructeurs
+
+    /// <summary>
+    /// Initialise un nouvel artiste avec des valeurs par défaut.
+    /// </summary>
+    public Artist()
+    {
+        name = string.Empty;
     }
 
     #endregion

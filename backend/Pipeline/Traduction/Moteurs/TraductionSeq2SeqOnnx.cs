@@ -78,6 +78,34 @@ namespace ScanTrad.Pipeline.Traduction.Moteurs
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Nombre de couches du décodeur, donc de blocs de cache à transporter.
+        /// </summary>
+        protected int Couches
+        {
+            get { return couches; }
+        }
+
+        /// <summary>
+        /// Identifiant du jeton de fin de phrase.
+        /// </summary>
+        protected int IdentifiantDeFin
+        {
+            get { return identifiantDeFin; }
+        }
+
+        /// <summary>
+        /// Identifiant du jeton de remplissage, qui ne doit jamais être produit.
+        /// </summary>
+        protected int IdentifiantDeRemplissage
+        {
+            get { return identifiantDeRemplissage; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -113,34 +141,6 @@ namespace ScanTrad.Pipeline.Traduction.Moteurs
             this.libere = false;
 
             LireLaConfiguration(Exiger(cheminDuDossier, FichierConfiguration));
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Nombre de couches du décodeur, donc de blocs de cache à transporter.
-        /// </summary>
-        protected int Couches
-        {
-            get { return couches; }
-        }
-
-        /// <summary>
-        /// Identifiant du jeton de fin de phrase.
-        /// </summary>
-        protected int IdentifiantDeFin
-        {
-            get { return identifiantDeFin; }
-        }
-
-        /// <summary>
-        /// Identifiant du jeton de remplissage, qui ne doit jamais être produit.
-        /// </summary>
-        protected int IdentifiantDeRemplissage
-        {
-            get { return identifiantDeRemplissage; }
         }
 
         #endregion

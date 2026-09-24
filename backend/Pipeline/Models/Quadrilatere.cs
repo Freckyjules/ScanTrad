@@ -17,40 +17,6 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
-        #region Constructeurs
-
-        /// <summary>
-        /// Initialise un quadrilatère dont les quatre coins sont à l'origine.
-        /// </summary>
-        public Quadrilatere()
-        {
-            hautGauche = new Coordonnee();
-            hautDroit = new Coordonnee();
-            basDroit = new Coordonnee();
-            basGauche = new Coordonnee();
-        }
-
-        /// <summary>
-        /// Initialise un quadrilatère à partir de ses quatre coins, donnés dans le
-        /// sens horaire en partant du haut gauche.
-        /// </summary>
-        /// <param name="hautGauche">Coin haut gauche.</param>
-        /// <param name="hautDroit">Coin haut droit.</param>
-        /// <param name="basDroit">Coin bas droit.</param>
-        /// <param name="basGauche">Coin bas gauche.</param>
-        /// <exception cref="ArgumentNullException">
-        /// Levée si l'un des quatre coins vaut <c>null</c>.
-        /// </exception>
-        public Quadrilatere(Coordonnee hautGauche, Coordonnee hautDroit, Coordonnee basDroit, Coordonnee basGauche)
-        {
-            this.hautGauche = hautGauche ?? throw new ArgumentNullException(nameof(hautGauche));
-            this.hautDroit = hautDroit ?? throw new ArgumentNullException(nameof(hautDroit));
-            this.basDroit = basDroit ?? throw new ArgumentNullException(nameof(basDroit));
-            this.basGauche = basGauche ?? throw new ArgumentNullException(nameof(basGauche));
-        }
-
-        #endregion
-
         #region Propriétés
 
         /// <summary>
@@ -138,6 +104,40 @@ namespace ScanTrad.Pipeline.Models
 
                 return Math.Atan2(ecartY, ecartX) * 180 / Math.PI;
             }
+        }
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise un quadrilatère dont les quatre coins sont à l'origine.
+        /// </summary>
+        public Quadrilatere()
+        {
+            hautGauche = new Coordonnee();
+            hautDroit = new Coordonnee();
+            basDroit = new Coordonnee();
+            basGauche = new Coordonnee();
+        }
+
+        /// <summary>
+        /// Initialise un quadrilatère à partir de ses quatre coins, donnés dans le
+        /// sens horaire en partant du haut gauche.
+        /// </summary>
+        /// <param name="hautGauche">Coin haut gauche.</param>
+        /// <param name="hautDroit">Coin haut droit.</param>
+        /// <param name="basDroit">Coin bas droit.</param>
+        /// <param name="basGauche">Coin bas gauche.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Levée si l'un des quatre coins vaut <c>null</c>.
+        /// </exception>
+        public Quadrilatere(Coordonnee hautGauche, Coordonnee hautDroit, Coordonnee basDroit, Coordonnee basGauche)
+        {
+            this.hautGauche = hautGauche ?? throw new ArgumentNullException(nameof(hautGauche));
+            this.hautDroit = hautDroit ?? throw new ArgumentNullException(nameof(hautDroit));
+            this.basDroit = basDroit ?? throw new ArgumentNullException(nameof(basDroit));
+            this.basGauche = basGauche ?? throw new ArgumentNullException(nameof(basGauche));
         }
 
         #endregion
