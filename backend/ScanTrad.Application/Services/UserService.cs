@@ -1,5 +1,8 @@
-﻿using ScanTrad.Application.Dtos;
+﻿using System.Text.RegularExpressions;
+using ScanTrad.Application.Common;
+using ScanTrad.Application.Dtos;
 using ScanTrad.Application.Interfaces;
+using ScanTrad.Application.Users;
 using ScanTrad.Domain.Entities;
 using ScanTrad.Domain.Repositories;
 
@@ -10,8 +13,27 @@ namespace ScanTrad.Application.Services
     /// </summary>
     public class UserService : IUserService
     {
+        #region Constantes
+
+        private const int LongueurMinimaleDuMotDePasse = 8;
+        private const int LongueurMaximaleDuMotDePasse = 128;
+
+        /// <summary>
+        /// De 3 à 20 caractères, uniquement des lettres non accentuées, des chiffres,
+        /// « _ » et « - ». Sensible à la casse : « jules » et « Jules » sont deux comptes.
+        /// </summary>
+        private static readonly Regex FormatDuNomDUtilisateur = new Regex("^[A-Za-z0-9_-]{3,20}$");
+
+        #endregion
+
+        #region Attributs
+
         private readonly IPasswordHasher passwordHasher;
         private readonly IUserRepository userRepository;
+
+        #endregion
+
+        #region Constructeurs
 
         /// <summary>
         /// Initialise une nouvelle instance de la classe <see cref="UserService"/>.
@@ -24,39 +46,40 @@ namespace ScanTrad.Application.Services
             this.userRepository = userRepository;
         }
 
+        #endregion
+
+        #region Méthodes
+
         /// <inheritdoc/>
-        public async Task<RegisterResultDto> RegisterUserAsync(RegisterRequestDto request)
+        public async Task<Result> RegisterUserAsync(RegisterRequestDto request)
         {
-            if (request.Password.Length < 8)
+            if (request.Password.Length < LongueurMinimaleDuMotDePasse)
             {
-                return new RegisterResultDto
-                {
-                    Success = false,
-                    ErrorMessage = "Le mot de passe doit contenir au moins 8 caractères."
-                };
+                return UserErrors.PasswordTooShort;
             }
 
-            if (await userRepository.UserExistsByUsername(request.Username))
+            if (request.Password.Length > LongueurMaximaleDuMotDePasse)
             {
-                return new RegisterResultDto
-                {
-                    Success = false,
-                    ErrorMessage = "Le nom d'utilisateur est déjà pris."
-                };
+                return UserErrors.PasswordTooLong;
             }
 
-            User user = new User
+            if (!FormatDuNomDUtilisateur.IsMatch(request.Username))
             {
-                Username = request.Username,
-                PasswordHash = passwordHasher.HashPassword(request.Password)
-            };
+                return UserErrors.InvalidUsername;
+            }
 
-            await userRepository.Register(user);
-
-            return new RegisterResultDto
+            if (await userRepository.ExistsByUsernameAsync(request.Username))
             {
-                Success = true,
-            };
+                return UserErrors.UsernameTaken;
+            }
+
+            User user = new User(request.Username, passwordHasher.HashPassword(request.Password));
+
+            await userRepository.AddAsync(user);
+
+            return Result.Success();
         }
+
+        #endregion
     }
 }

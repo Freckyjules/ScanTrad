@@ -1,7 +1,4 @@
 ﻿using ScanTrad.Application.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ScanTrad.Infrastructure.Data
 {
@@ -21,7 +18,8 @@ namespace ScanTrad.Infrastructure.Data
             {
                 return;
             }
-            // Permet ici de mettre en base par défaut
+            // Vide pour l'instant : accueillera le compte administrateur (US-3.5, #27)
+            // et un compte de test pour la connexion (US-3.2, #24).
             await context.SaveChangesAsync();
         }
     }

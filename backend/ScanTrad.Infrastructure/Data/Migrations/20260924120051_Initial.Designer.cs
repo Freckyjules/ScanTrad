@@ -10,7 +10,7 @@ using ScanTrad.Infrastructure.Data;
 namespace ScanTrad.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ScanTradDbContext))]
-    [Migration("20260923221820_Initial")]
+    [Migration("20260924120051_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -32,7 +32,7 @@ namespace ScanTrad.Infrastructure.Data.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasMaxLength(100)
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

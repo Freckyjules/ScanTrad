@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace ScanTrad.Application.Dtos
 {
@@ -10,15 +7,20 @@ namespace ScanTrad.Application.Dtos
     /// </summary>
     public class RegisterRequestDto
     {
+        #region Propriétés
+
         /// <summary>
         /// Nom d'utilisateur.
         /// </summary>
         [Required]
-        public string Username { get; set; }
+        public required string Username { get; set; }
+
         /// <summary>
         /// Mot de passe.
         /// </summary>
         [Required]
-        public string Password { get; set; }
+        public required string Password { get; set; }
+
+        #endregion
     }
 }

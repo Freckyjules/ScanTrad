@@ -1,4 +1,5 @@
-﻿using ScanTrad.Application.Dtos;
+using ScanTrad.Application.Common;
+using ScanTrad.Application.Dtos;
 
 namespace ScanTrad.Application.Interfaces
 {
@@ -11,7 +12,11 @@ namespace ScanTrad.Application.Interfaces
         /// Enregistre un nouvel utilisateur.
         /// </summary>
         /// <param name="request">Les informations de l'utilisateur à enregistrer.</param>
-        /// <returns>Un objet contenant les résultats de l'enregistrement.</returns>
-        Task<RegisterResultDto> RegisterUserAsync(RegisterRequestDto request);
+        /// <returns>
+        /// Une réussite, ou un échec portant l'une des erreurs de
+        /// <see cref="Users.UserErrors"/> : mot de passe trop court, nom
+        /// d'utilisateur invalide ou déjà pris.
+        /// </returns>
+        Task<Result> RegisterUserAsync(RegisterRequestDto request);
     }
 }

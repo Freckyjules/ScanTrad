@@ -1,9 +1,7 @@
-﻿using ScanTrad.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using ScanTrad.Domain.Entities;
 using ScanTrad.Domain.Repositories;
 using ScanTrad.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ScanTrad.Infrastructure.Repositories
 {
@@ -12,27 +10,43 @@ namespace ScanTrad.Infrastructure.Repositories
     /// </summary>
     public class EfUserRepository : IUserRepository
     {
+        #region Attributs
+
         private readonly ScanTradDbContext context;
 
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise le repository sur le contexte EF Core de l'application.
+        /// </summary>
+        /// <param name="context">Le contexte de la base ScanTrad.</param>
         public EfUserRepository(ScanTradDbContext context)
         {
             this.context = context;
         }
 
+        #endregion
+
+        #region Méthodes
+
         /// <inheritdoc/>
         /// <exception cref="DbUpdateException">
         /// L'enregistrement a échoué, notamment si le nom d'utilisateur est déjà pris.
         /// </exception>
-        public async Task Register(User user)
+        public async Task AddAsync(User user)
         {
             context.Users.Add(user);
-            await context.SaveChangesAsync();   
+            await context.SaveChangesAsync();
         }
 
         /// <inheritdoc/>
-        public Task<bool> UserExistsByUsername(string username)
+        public async Task<bool> ExistsByUsernameAsync(string username)
         {
-            return Task.FromResult(context.Users.Any(u => u.Username == username));
+            return await context.Users.AnyAsync(u => u.Username == username);
         }
+
+        #endregion
     }
 }

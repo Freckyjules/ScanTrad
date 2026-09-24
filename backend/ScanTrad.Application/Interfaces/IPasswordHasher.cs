@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ScanTrad.Application.Interfaces
+﻿namespace ScanTrad.Application.Interfaces
 {
     /// <summary>
     /// Interface pour le service de hachage des mots de passe.

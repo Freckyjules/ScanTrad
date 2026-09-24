@@ -1,20 +1,35 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScanTrad.Domain.Entities;
 
 namespace ScanTrad.Infrastructure.Data
 {
     /// <summary>
-    /// DbContext pour l'application Network Operations Center.
+    /// Contexte EF Core de ScanTrad : les tables de la base et leur configuration.
     /// </summary>
     public class ScanTradDbContext : DbContext
     {
-        public ScanTradDbContext(DbContextOptions<ScanTradDbContext> options)
-        : base(options)
-        {
-        }
+        #region Propriétés
 
         /// <summary>Table des utilisateurs.</summary>
         public DbSet<User> Users => Set<User>();
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise le contexte avec ses options (fournisseur et chaîne de connexion),
+        /// données par l'injection de dépendances.
+        /// </summary>
+        /// <param name="options">Les options du contexte.</param>
+        public ScanTradDbContext(DbContextOptions<ScanTradDbContext> options)
+            : base(options)
+        {
+        }
+
+        #endregion
+
+        #region Méthodes
 
         /// <inheritdoc />
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -25,10 +40,12 @@ namespace ScanTrad.Infrastructure.Data
             {
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
-                entity.Property(u => u.Username).IsRequired().HasMaxLength(100);
+                entity.Property(u => u.Username).IsRequired().HasMaxLength(20);
                 entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(200);
                 entity.HasIndex(u => u.Username).IsUnique();
             });
         }
+
+        #endregion
     }
 }

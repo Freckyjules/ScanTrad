@@ -1,10 +1,10 @@
-﻿using ScanTrad.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using ScanTrad.Domain.Entities;
 
 namespace ScanTrad.Domain.Repositories
 {
+    /// <summary>
+    /// Accès en lecture et en écriture aux utilisateurs enregistrés.
+    /// </summary>
     public interface IUserRepository
     {
         /// <summary>
@@ -12,13 +12,13 @@ namespace ScanTrad.Domain.Repositories
         /// </summary>
         /// <param name="user"> L'utilisateur à enregistrer. </param>
         /// <returns> Une tâche représentant l'opération asynchrone. </returns>
-        Task Register(User user);
+        Task AddAsync(User user);
 
         /// <summary>
         /// Vérifie si un utilisateur existe déjà dans la base de données en fonction de son nom d'utilisateur.
         /// </summary>
         /// <param name="username"> Le nom d'utilisateur à vérifier. </param>
         /// <returns> true si l'utilisateur existe, false sinon. </returns>
-        Task<bool> UserExistsByUsername(string username);
+        Task<bool> ExistsByUsernameAsync(string username);
     }
 }
