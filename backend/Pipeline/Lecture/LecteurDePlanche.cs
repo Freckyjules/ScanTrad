@@ -62,6 +62,19 @@ namespace ScanTrad.Pipeline.Lecture
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Seuil en dessous duquel un bloc lu est jeté, entre 0 et 1.
+        /// </summary>
+        public double ConfianceMinimale
+        {
+            get { return confianceMinimale; }
+            set { confianceMinimale = value; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -124,19 +137,6 @@ namespace ScanTrad.Pipeline.Lecture
                 // Une planche de manga n'est de toute façon pas à l'envers.
                 Enable180Classification = false
             };
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Seuil en dessous duquel un bloc lu est jeté, entre 0 et 1.
-        /// </summary>
-        public double ConfianceMinimale
-        {
-            get { return confianceMinimale; }
-            set { confianceMinimale = value; }
         }
 
         #endregion

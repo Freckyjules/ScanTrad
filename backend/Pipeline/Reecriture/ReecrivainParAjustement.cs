@@ -70,6 +70,28 @@ namespace ScanTrad.Pipeline.Reecriture
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Le nom de la police utilisée pour le rendu du texte traduit.
+        /// </summary>
+        public string NomDePolice
+        {
+            get { return nomDePolice; }
+            set { nomDePolice = value ?? throw new ArgumentNullException(nameof(value)); }
+        }
+
+        /// <summary>
+        /// La couleur du texte réécrit.
+        /// </summary>
+        public Couleur Couleur
+        {
+            get { return couleur; }
+            set { couleur = value ?? throw new ArgumentNullException(nameof(value)); }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -105,28 +127,6 @@ namespace ScanTrad.Pipeline.Reecriture
 
             this.nomDePolice = nomDePolice;
             this.couleur = couleur ?? throw new ArgumentNullException(nameof(couleur));
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Le nom de la police utilisée pour le rendu du texte traduit.
-        /// </summary>
-        public string NomDePolice
-        {
-            get { return nomDePolice; }
-            set { nomDePolice = value ?? throw new ArgumentNullException(nameof(value)); }
-        }
-
-        /// <summary>
-        /// La couleur du texte réécrit.
-        /// </summary>
-        public Couleur Couleur
-        {
-            get { return couleur; }
-            set { couleur = value ?? throw new ArgumentNullException(nameof(value)); }
         }
 
         #endregion

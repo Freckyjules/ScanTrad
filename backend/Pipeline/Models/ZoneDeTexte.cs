@@ -26,26 +26,6 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
-        #region Constructeurs
-
-        /// <summary>
-        /// Initialise une zone vide, sans géométrie ni texte.
-        /// </summary>
-        public ZoneDeTexte()
-        {
-            rectangle = new Quadrilatere();
-            angle = 0;
-            hauteurDeLigne = null;
-            bulle = null;
-            couleurDeFond = null;
-            texteOriginal = string.Empty;
-            texteTraduit = null;
-            confiance = 0;
-            ordreDeLecture = null;
-        }
-
-        #endregion
-
         #region Propriétés
 
         /// <summary>
@@ -172,6 +152,26 @@ namespace ScanTrad.Pipeline.Models
         {
             get { return ordreDeLecture; }
             set { ordreDeLecture = value; }
+        }
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise une zone vide, sans géométrie ni texte.
+        /// </summary>
+        public ZoneDeTexte()
+        {
+            rectangle = new Quadrilatere();
+            angle = 0;
+            hauteurDeLigne = null;
+            bulle = null;
+            couleurDeFond = null;
+            texteOriginal = string.Empty;
+            texteTraduit = null;
+            confiance = 0;
+            ordreDeLecture = null;
         }
 
         #endregion

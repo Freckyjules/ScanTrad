@@ -38,6 +38,21 @@ namespace ScanTrad.Pipeline.Effacement
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// La couleur de repli, dont on repeint les bulles dont la lecture n'a pas
+        /// mesuré le fond. Quand <see cref="ZoneDeTexte.CouleurDeFond"/> est
+        /// renseignée, c'est elle qui sert.
+        /// </summary>
+        public Scalar Couleur
+        {
+            get { return couleur; }
+            set { couleur = value; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -59,21 +74,6 @@ namespace ScanTrad.Pipeline.Effacement
         public EffaceurParRemplissage(Scalar couleur)
         {
             this.couleur = couleur;
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// La couleur de repli, dont on repeint les bulles dont la lecture n'a pas
-        /// mesuré le fond. Quand <see cref="ZoneDeTexte.CouleurDeFond"/> est
-        /// renseignée, c'est elle qui sert.
-        /// </summary>
-        public Scalar Couleur
-        {
-            get { return couleur; }
-            set { couleur = value; }
         }
 
         #endregion

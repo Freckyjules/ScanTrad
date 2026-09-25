@@ -1,0 +1,47 @@
+@ScanTrad.Api_HostAddress = http://localhost:5138
+
+### Inscription réussie : 201 (relancer une seconde fois donne 409, nom déjà pris)
+POST {{ScanTrad.Api_HostAddress}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "jules",
+  "password": "motdepasse1"
+}
+
+### Même nom avec une majuscule : 409, "Jules" et "jules" sont le même compte
+POST {{ScanTrad.Api_HostAddress}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "Jules",
+  "password": "motdepasse1"
+}
+
+### Mot de passe trop court : 400 User.PasswordTooShort
+POST {{ScanTrad.Api_HostAddress}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "court",
+  "password": "abc"
+}
+
+### Nom d'utilisateur invalide (caractère interdit) : 400 User.InvalidUsername
+POST {{ScanTrad.Api_HostAddress}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "jules!",
+  "password": "motdepasse1"
+}
+
+### Champ manquant : 400, rejeté avant le contrôleur
+POST {{ScanTrad.Api_HostAddress}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "jules"
+}
+
+###

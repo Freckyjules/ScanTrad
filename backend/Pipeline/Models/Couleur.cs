@@ -27,6 +27,37 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Composante rouge, de 0 à 255.
+        /// </summary>
+        public int Rouge
+        {
+            get { return rouge; }
+            set { rouge = value; }
+        }
+
+        /// <summary>
+        /// Composante verte, de 0 à 255.
+        /// </summary>
+        public int Vert
+        {
+            get { return vert; }
+            set { vert = value; }
+        }
+
+        /// <summary>
+        /// Composante bleue, de 0 à 255.
+        /// </summary>
+        public int Bleu
+        {
+            get { return bleu; }
+            set { bleu = value; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -57,37 +88,6 @@ namespace ScanTrad.Pipeline.Models
             this.rouge = rouge;
             this.vert = vert;
             this.bleu = bleu;
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Composante rouge, de 0 à 255.
-        /// </summary>
-        public int Rouge
-        {
-            get { return rouge; }
-            set { rouge = value; }
-        }
-
-        /// <summary>
-        /// Composante verte, de 0 à 255.
-        /// </summary>
-        public int Vert
-        {
-            get { return vert; }
-            set { vert = value; }
-        }
-
-        /// <summary>
-        /// Composante bleue, de 0 à 255.
-        /// </summary>
-        public int Bleu
-        {
-            get { return bleu; }
-            set { bleu = value; }
         }
 
         #endregion

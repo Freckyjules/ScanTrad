@@ -32,6 +32,37 @@ namespace ScanTrad.Pipeline.Models
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Contenu binaire de l'image, tel quel et non décodé. Le format se reconnaît
+        /// aux premiers octets, il n'a pas à être précisé.
+        /// </summary>
+        public byte[] Image
+        {
+            get { return image; }
+        }
+
+        /// <summary>
+        /// Le sens dans lequel cette planche se lit. Beaucoup d'éditions anglaises
+        /// sont retournées et se lisent de gauche à droite.
+        /// </summary>
+        public SensDeLecture Sens
+        {
+            get { return sens; }
+        }
+
+        /// <summary>
+        /// Les zones de texte trouvées sur la planche. Vide tant que la lecture n'a
+        /// pas eu lieu.
+        /// </summary>
+        public IReadOnlyList<ZoneDeTexte> Zones
+        {
+            get { return zones; }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -86,37 +117,6 @@ namespace ScanTrad.Pipeline.Models
             this.image = image ?? throw new ArgumentNullException(nameof(image));
             this.sens = sens;
             this.zones = new List<ZoneDeTexte>(zones);
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Contenu binaire de l'image, tel quel et non décodé. Le format se reconnaît
-        /// aux premiers octets, il n'a pas à être précisé.
-        /// </summary>
-        public byte[] Image
-        {
-            get { return image; }
-        }
-
-        /// <summary>
-        /// Le sens dans lequel cette planche se lit. Beaucoup d'éditions anglaises
-        /// sont retournées et se lisent de gauche à droite.
-        /// </summary>
-        public SensDeLecture Sens
-        {
-            get { return sens; }
-        }
-
-        /// <summary>
-        /// Les zones de texte trouvées sur la planche. Vide tant que la lecture n'a
-        /// pas eu lieu.
-        /// </summary>
-        public IReadOnlyList<ZoneDeTexte> Zones
-        {
-            get { return zones; }
         }
 
         #endregion

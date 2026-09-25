@@ -31,20 +31,6 @@ namespace ScanTrad.PipelineTests
 
         #endregion
 
-        #region Constructeurs
-
-        /// <summary>
-        /// Initialise le partage. La lecture n'a lieu qu'au moment où xUnit appelle
-        /// <see cref="InitializeAsync"/>.
-        /// </summary>
-        public LectureDeLaPlancheDEssai()
-        {
-            originale = new Planche(Array.Empty<byte>());
-            lue = originale;
-        }
-
-        #endregion
-
         #region Propriétés
 
         /// <summary>
@@ -70,6 +56,20 @@ namespace ScanTrad.PipelineTests
         public IReadOnlyList<ZoneDeTexte> Zones
         {
             get { return lue.Zones; }
+        }
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Initialise le partage. La lecture n'a lieu qu'au moment où xUnit appelle
+        /// <see cref="InitializeAsync"/>.
+        /// </summary>
+        public LectureDeLaPlancheDEssai()
+        {
+            originale = new Planche(Array.Empty<byte>());
+            lue = originale;
         }
 
         #endregion

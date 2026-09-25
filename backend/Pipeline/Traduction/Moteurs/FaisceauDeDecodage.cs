@@ -27,23 +27,6 @@ namespace ScanTrad.Pipeline.Traduction.Moteurs
 
         #endregion
 
-        #region Constructeurs
-
-        /// <summary>
-        /// Crée un faisceau à partir de son historique, de son score et de son cache.
-        /// </summary>
-        /// <param name="jetons">Les jetons produits jusqu'ici.</param>
-        /// <param name="score">La somme des logarithmes de vraisemblance.</param>
-        /// <param name="cache">Le cache du décodeur correspondant à cet historique.</param>
-        public FaisceauDeDecodage(List<int> jetons, double score, DenseTensor<float>[] cache)
-        {
-            this.jetons = jetons;
-            this.score = score;
-            this.cache = cache;
-        }
-
-        #endregion
-
         #region Propriétés
 
         /// <summary>
@@ -78,6 +61,23 @@ namespace ScanTrad.Pipeline.Traduction.Moteurs
         public int Dernier
         {
             get { return jetons[jetons.Count - 1]; }
+        }
+
+        #endregion
+
+        #region Constructeurs
+
+        /// <summary>
+        /// Crée un faisceau à partir de son historique, de son score et de son cache.
+        /// </summary>
+        /// <param name="jetons">Les jetons produits jusqu'ici.</param>
+        /// <param name="score">La somme des logarithmes de vraisemblance.</param>
+        /// <param name="cache">Le cache du décodeur correspondant à cet historique.</param>
+        public FaisceauDeDecodage(List<int> jetons, double score, DenseTensor<float>[] cache)
+        {
+            this.jetons = jetons;
+            this.score = score;
+            this.cache = cache;
         }
 
         #endregion

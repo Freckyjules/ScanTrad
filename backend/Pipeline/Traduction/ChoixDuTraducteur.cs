@@ -37,6 +37,18 @@ namespace ScanTrad.Pipeline.Traduction
 
         #endregion
 
+        #region Propriétés
+
+        /// <summary>
+        /// Les moteurs que ce choix sait construire.
+        /// </summary>
+        public IReadOnlyCollection<MoteurDeTraduction> Moteurs
+        {
+            get { return this.moteurs.Keys.ToArray(); }
+        }
+
+        #endregion
+
         #region Constructeurs
 
         /// <summary>
@@ -50,18 +62,6 @@ namespace ScanTrad.Pipeline.Traduction
                 { MoteurDeTraduction.OpusMt, () => new TraductionOpusMt(LocalisateurDeModele.Localiser("opusMt")) },
                 { MoteurDeTraduction.Nllb, () => new TraductionNllb(LocalisateurDeModele.Localiser("nllb")) }
             };
-        }
-
-        #endregion
-
-        #region Propriétés
-
-        /// <summary>
-        /// Les moteurs que ce choix sait construire.
-        /// </summary>
-        public IReadOnlyCollection<MoteurDeTraduction> Moteurs
-        {
-            get { return this.moteurs.Keys.ToArray(); }
         }
 
         #endregion
