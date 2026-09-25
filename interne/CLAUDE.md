@@ -6,6 +6,9 @@
 ## Conventions de code C#
 Les conventions de code C# sont décrites dans [backend/CLAUDE.md](backend/CLAUDE.md)
 
+## Conventions du front Angular
+La structure et les conventions du front sont décrites dans [front/CLAUDE.md](front/CLAUDE.md)
+
 ## Convention de commits (Git)
 Utiliser **Conventional Commits** pour tous les messages de commit : `type(portée): description`.
 
